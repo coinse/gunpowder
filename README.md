@@ -2,6 +2,8 @@
 This project is using [clang 3.9](http://llvm.org/releases/download.html#3.9.0). You can download pre-built binaries and build script will refer it.
 
 # Build
+> This project is based on (https://github.com/eliben/llvm-clang-samples) and (https://github.com/eliben/llvm-clang-samples/pull/11) especially for MacOS compatibility.
+
 First, you need to set the path of pre-built binaries of clang.  
 For example, following is the command to build `buildcfg`
 
