@@ -8,6 +8,7 @@
 #include "clang/Analysis/CFG.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/OperationKinds.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
@@ -140,12 +141,39 @@ public:
     }
 
     void insertbranchlog(Expr *Cond, int stmtid) {
-        std::stringstream ss;
-        ss << "tracelog(";
-        ss << stmtid;
-        ss << ") && ";
-
-        TheRewriter.InsertTextAfter(Cond->getLocStart(), ss.str());
+        if (BinaryOperator *o = dyn_cast<BinaryOperator>(Cond)) {
+          std::string str;
+          llvm::raw_string_ostream S(str);
+          S << "tracelog(" << stmtid << ") && ";
+          BinaryOperator::Opcode Opc = o->getOpcode();
+          switch (Opc) {
+            case BO_GT:
+              S << "isGreater(";
+              break;
+            case BO_GE:
+              S << "isEqGreater(";
+              break;
+            case BO_LT:
+              S << "isLess(";
+              break;
+            case BO_LE:
+              S << "isEqLess(";
+              break;
+            case BO_EQ:
+              S << "isEqual(";
+              break;
+            case BO_NE:
+              S << "isnotEqual(";
+              break;
+            default:
+              return;
+          }
+          (o->getLHS())->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
+          S << ",";
+          (o->getRHS())->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
+          S << "," << stmtid << ")";
+          TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+        }
     }
 
     bool VisitStmt(Stmt *s) {
