@@ -80,7 +80,7 @@ public:
         return *it;
     }
 
-    void insertdep(SourceLocation Loc, int stmtid, int parentid) {
+    void insertdep(SourceLocation Loc, int stmtid, int parentid, bool cond) {
         std::stringstream ss;
         ss << "/*";
         ss << parentid;
@@ -94,11 +94,13 @@ public:
         ofs << stmtid;
         ofs << " ";
         ofs << parentid;
+        ofs << " ";
+        ofs << (cond ? "true" : "false");
         ofs << "\n";
         ofs.close();
     }
 
-    int assignDep (Stmt *s, Stmt *parent) {
+    int assignDep (Stmt *s, Stmt *parent, bool cond) {
         int stmtid;
         int parentid;
 
@@ -107,33 +109,33 @@ public:
             parentid = getStmtid(parent);
             branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
 
-            insertdep(s->getLocStart(), stmtid, parentid);
+            insertdep(s->getLocStart(), stmtid, parentid, cond);
         }
         else if(isa<ForStmt>(s)) {
             stmtid = assignStmtid(s);
             parentid = getStmtid(parent);
             branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
 
-            insertdep(s->getLocStart(), stmtid, parentid);
+            insertdep(s->getLocStart(), stmtid, parentid, cond);
         }
         else if(isa<IfStmt>(s)) {
             stmtid = assignStmtid(s);
             parentid = getStmtid(parent);
             branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
 
-            insertdep(s->getLocStart(), stmtid, parentid);
+            insertdep(s->getLocStart(), stmtid, parentid, cond);
         }
         else if(isa<WhileStmt>(s)) {
             stmtid = assignStmtid(s);
             parentid = getStmtid(parent);
             branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
 
-            insertdep(s->getLocStart(), stmtid, parentid);
+            insertdep(s->getLocStart(), stmtid, parentid, cond);
         }
         else if(isa<CompoundStmt>(s)) {
             CompoundStmt *C = cast<CompoundStmt>(s);
             for(auto *I: C->body()){
-                 assignDep(I, parent);
+                 assignDep(I, parent, cond);
             }
         }
 
@@ -144,7 +146,6 @@ public:
         if (BinaryOperator *o = dyn_cast<BinaryOperator>(Cond)) {
           std::string str;
           llvm::raw_string_ostream S(str);
-          S << "tracelog(" << stmtid << ") && ";
           BinaryOperator::Opcode Opc = o->getOpcode();
           switch (Opc) {
             case BO_GT:
@@ -184,7 +185,7 @@ public:
             Expr *Cond = F->getCond();
             Stmt *Body = F->getBody();
 
-            assignDep(Body, s);
+            assignDep(Body, s, true);
 
             insertbranchlog(Cond, stmtid);
         }
@@ -195,7 +196,7 @@ public:
             Expr *Cond = F->getCond();
             Stmt *Body = F->getBody();
 
-            assignDep(Body, s);
+            assignDep(Body, s, true);
 
             insertbranchlog(Cond, stmtid);
         }
@@ -207,9 +208,9 @@ public:
             Stmt *Then = I->getThen();
             Stmt *Else = I->getElse();
 
-            assignDep(Then, s);
+            assignDep(Then, s, true);
             if(Else)
-                assignDep(Else, s);
+                assignDep(Else, s, false);
 
             insertbranchlog(Cond, stmtid);
         }
@@ -220,7 +221,7 @@ public:
             Expr *Cond = F->getCond();
             Stmt *Body = F->getBody();
 
-            assignDep(Body, s);
+            assignDep(Body, s, true);
 
             insertbranchlog(Cond, stmtid);
         }
@@ -303,11 +304,17 @@ int main(int argc, char *argv[]) {
 	ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
 			TheCompInst.getASTContext());
 
+  TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"util/branchdistance.c\"\n");
+
 	// At this point the rewriter's buffer should be full with the rewritten
 	// file contents.
 	const RewriteBuffer *RewriteBuf =
 		TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-	llvm::outs() << std::string(RewriteBuf->begin(), RewriteBuf->end());
+  std::string f = std::string(argv[1]);
+  std::string filename = f.substr(0, f.find_last_of('.'));
+  filename = filename + ".inst.c";
+  std::ofstream out(filename.c_str());
+  out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 
 
 	return 0;
