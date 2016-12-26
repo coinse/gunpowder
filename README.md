@@ -9,7 +9,7 @@ For example, following is the command to build `buildcfg`
 
 ```sh
 $ export BINARY_DIR_PATH=./clang+llvm-3.9.0-x86_64-apple-darwin
-$ ./build_vs_released_binary.sh
+$ make
 ```
 
 If you have built llvm and clang using source code at your machine, you may use it directly. In this case, please look at `Makefile`.
