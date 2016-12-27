@@ -1,4 +1,4 @@
-def gettrace():
+def get_trace():
     trace = []
     with open('../trace') as tracefile:
         for line in tracefile:
@@ -8,7 +8,7 @@ def gettrace():
     return trace
 
 
-def getdepmaps():
+def get_depmaps():
     Depmaps = {}
     with open('../controldep.txt') as depfile:
         for line in depfile:
@@ -18,9 +18,9 @@ def getdepmaps():
     return Depmaps
 
 
-def getlv(branch):
-    trace = gettrace()
-    Depmaps = getdepmaps()
+def get_lv(branch):
+    trace = get_trace()
+    Depmaps = get_depmaps()
 
     nodeid = int(branch[:-1])
 
@@ -38,7 +38,7 @@ def getlv(branch):
 
 
 def main():
-    approachlevel = getlv("5T")
+    approachlevel = get_lv("5T")
     print(approachlevel)
 
 
