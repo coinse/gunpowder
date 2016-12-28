@@ -247,9 +247,16 @@ public:
     // Override the method that gets called for each parsed top-level
     // declaration.
     virtual bool HandleTopLevelDecl(DeclGroupRef DR) {
-        for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b)
+        for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b){
             // Traverse the declaration using our AST visitor.
             Visitor.TraverseDecl(*b);
+            for(auto &it : Visitor.branchids){
+                if (Visitor.getDep(it.first).second == NULL){
+                    int stmtid = Visitor.getStmtid(it.first);
+                    Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
+                }
+            }
+        }
         return true;
     }
 
