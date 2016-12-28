@@ -13,7 +13,8 @@ def get_depmaps():
     with open('../controldep.txt') as depfile:
         for line in depfile:
             parts = line.split()
-            Depmaps[int(parts[0])] = int(parts[1])
+            if int(parts[1]) != -1:
+                Depmaps[int(parts[0])] = int(parts[1])
 
     return Depmaps
 
