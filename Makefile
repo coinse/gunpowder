@@ -107,9 +107,9 @@ endif
 # Internal paths in this project: where to find sources, and where to put
 # build artifacts.
 
-SRCS= buildcfg.cpp
-OBJS= buildcfg.o
-TARGET= buildcfg
+SRCS= lib/buildcfg.cpp
+OBJS= lib/buildcfg.o
+TARGET= bin/buildcfg
 
 .PHONY: all
 all: $(TARGET)
