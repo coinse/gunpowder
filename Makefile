@@ -118,6 +118,10 @@ $(TARGET): $(SRCS)
 	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
 
+bin/buildcfg.so: lib/buildcfg.cpp
+	$(CXX) $(PLUGIN_CXXFLAGS) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
+		$(PLUGIN_LDFLAGS) $(LLVM_LDFLAGS_NOLIBS) -o $@
+
 .PHONY: clean
 clean:
 	rm -rf $(OBJS) $(TARGET)
