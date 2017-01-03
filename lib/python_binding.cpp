@@ -15,7 +15,8 @@ clang_instrument(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef methods[] = {
-  {"instrument", clang_instrument, METH_VARARGS, "Instrument given c code."}
+  {"instrument", clang_instrument, METH_VARARGS, "Instrument given c code."},
+  {NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef module = {

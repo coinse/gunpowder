@@ -1,11 +1,12 @@
 from distutils.core import setup, Extension
 import subprocess
+import platform
 
 def parse_config (libs, lib_dirs, extra, include_dirs, flags):
   for param in flags:
     opt = param[:2]
     if opt == '-l':
-      libs.append(param[2:])
+      libs.append(param)
     elif opt == '-L':
       lib_dirs.append(param[2:])
     elif opt == '-I':
@@ -18,7 +19,7 @@ lib_dirs = []
 extra = []
 include_dirs = []
 
-BINARY_DIR_PATH = "./clang+llvm-3.9.0-x86_64-apple-darwin"
+BINARY_DIR_PATH = './clang+llvm-3.9.0-x86_64-linux-gnu-ubuntu-16.04'
 LLVM_SRC_PATH = BINARY_DIR_PATH
 LLVM_BUILD_PATH = BINARY_DIR_PATH + "/bin"
 LLVM_BIN_PATH = BINARY_DIR_PATH + "/bin"
@@ -26,11 +27,11 @@ CXXFLAGS = "-fno-rtti" # -O0 -g"
 extra.append(CXXFLAGS)
 PLUGIN_CXXFLAGS = "-fpic"
 
-proc = subprocess.Popen([f'{LLVM_BIN_PATH}/llvm-config', '--cxxflags'], stdout=subprocess.PIPE)
+proc = subprocess.Popen([LLVM_BIN_PATH+'/llvm-config', '--cxxflags'], stdout=subprocess.PIPE)
 LLVM_CXXFLAGS = proc.communicate()[0].decode().split()
 parse_config(libs, lib_dirs, extra, include_dirs, LLVM_CXXFLAGS)
 
-proc = subprocess.Popen([f'{LLVM_BIN_PATH}/llvm-config', '--ldflags', '--libs', '--system-libs'], stdout=subprocess.PIPE)
+proc = subprocess.Popen([LLVM_BIN_PATH+'/llvm-config', '--ldflags', '--libs', '--system-libs'], stdout=subprocess.PIPE)
 LLVM_LDFLAGS = proc.communicate()[0].decode().split()
 parse_config(libs, lib_dirs, extra, include_dirs, LLVM_LDFLAGS)
 
@@ -39,42 +40,44 @@ print(lib_dirs)
 print(extra)
 print(include_dirs)
 
-LLVM_LDFLAGS_NOLIBS = f'{LLVM_BIN_PATH}/llvm-config --ldflags'
+LLVM_LDFLAGS_NOLIBS = LLVM_BIN_PATH+'/llvm-config --ldflags'
 PLUGIN_LDFLAGS = '-shared -Wl,-undefined,dynamic_lookup'
 
-CLANG_INCLUDES = [f'{LLVM_SRC_PATH}/tools/clang/include', f'{LLVM_BUILD_PATH}/tools/clang/include']
+CLANG_INCLUDES = [LLVM_SRC_PATH+'/tools/clang/include', LLVM_BUILD_PATH+'/tools/clang/include']
 
 CLANG_LIBS = [
-	'clangAST',
-	'clangASTMatchers',
-	'clangAnalysis', 
-	'clangBasic', 
-	'clangDriver', 
-	'clangEdit', 
-	'clangFrontend', 
-	'clangFrontendTool', 
-	'clangLex', 
-	'clangParse', 
-	'clangSema', 
-	'clangEdit', 
-	'clangRewrite', 
-	'clangRewriteFrontend', 
-	'clangStaticAnalyzerFrontend', 
-	'clangStaticAnalyzerCheckers',
-	'clangStaticAnalyzerCore', 
-	'clangSerialization', 
-	'clangToolingCore', 
-	'clangTooling', 
-	'clangFormat'
+	'-lclangAST',
+	'-lclangASTMatchers',
+	'-lclangAnalysis', 
+	'-lclangBasic', 
+	'-lclangDriver', 
+	'-lclangEdit', 
+	'-lclangFrontend', 
+	'-lclangFrontendTool', 
+	'-lclangLex', 
+	'-lclangParse', 
+	'-lclangSema', 
+	'-lclangEdit', 
+	'-lclangRewrite', 
+	'-lclangRewriteFrontend', 
+	'-lclangStaticAnalyzerFrontend', 
+	'-lclangStaticAnalyzerCheckers',
+	'-lclangStaticAnalyzerCore', 
+	'-lclangSerialization', 
+	'-lclangToolingCore', 
+	'-lclangTooling', 
+	'-lclangFormat'
 ]
+if platform.system() != 'Darwin':
+  CLANG_LIBS = ['-Wl,--start-group']+CLANG_LIBS+['-Wl,--end-group']
 
 module = Extension(
   'clang',
   sources=['lib/python_binding.cpp'],
   include_dirs=CLANG_INCLUDES+include_dirs,
-  libraries=CLANG_LIBS+libs,
   library_dirs=lib_dirs,
-  extra_compile_args=extra
+  extra_compile_args=extra,
+  extra_link_args=CLANG_LIBS+libs
 )
 
 setup(
