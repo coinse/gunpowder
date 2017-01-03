@@ -1,6 +1,7 @@
 from distutils.core import setup, Extension
 import subprocess
 import platform
+import os
 
 def parse_config (libs, lib_dirs, extra, include_dirs, flags):
   for param in flags:
@@ -19,7 +20,10 @@ lib_dirs = []
 extra = []
 include_dirs = []
 
-BINARY_DIR_PATH = './clang+llvm-3.9.0-x86_64-linux-gnu-ubuntu-16.04'
+if not os.environ.get('BINARY_DIR_PATH'):
+  raise SystemExit('BINARY_DIR_PATH is unset.')
+BINARY_DIR_PATH = os.environ['BINARY_DIR_PATH']
+
 LLVM_SRC_PATH = BINARY_DIR_PATH
 LLVM_BUILD_PATH = BINARY_DIR_PATH + "/bin"
 LLVM_BIN_PATH = BINARY_DIR_PATH + "/bin"

@@ -121,6 +121,9 @@ $(TARGET): $(SRCS)
 	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
 
+python:
+	CC=$(CXX) python3 setup.py install
+
 .PHONY: clean
 clean:
 	rm -rf $(OBJS) $(TARGET)
