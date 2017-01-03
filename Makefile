@@ -35,6 +35,7 @@ LLVM_BUILD_PATH := $(BINARY_DIR_PATH)/bin
 LLVM_BIN_PATH 	:= $(BINARY_DIR_PATH)/bin
 
 $(info -----------------------------------------------)
+$(info Using BINARY_DIR_PATH = $(BINARY_DIR_PATH))
 $(info Using LLVM_SRC_PATH = $(LLVM_SRC_PATH))
 $(info Using LLVM_BUILD_PATH = $(LLVM_BUILD_PATH))
 $(info Using LLVM_BIN_PATH = $(LLVM_BIN_PATH))
@@ -107,9 +108,11 @@ endif
 # Internal paths in this project: where to find sources, and where to put
 # build artifacts.
 
-SRCS= lib/buildcfg.cpp
-OBJS= lib/buildcfg.o
-TARGET= bin/buildcfg
+SRCDIR = lib
+BUILDDIR = bin
+SRCS = $(SRCDIR)/main.cpp
+OBJS = $(SRCDIR)/main.o
+TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
 all: $(TARGET)
@@ -117,10 +120,6 @@ all: $(TARGET)
 $(TARGET): $(SRCS)
 	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
-
-bin/buildcfg.so: lib/buildcfg.cpp
-	$(CXX) $(PLUGIN_CXXFLAGS) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
-		$(PLUGIN_LDFLAGS) $(LLVM_LDFLAGS_NOLIBS) -o $@
 
 .PHONY: clean
 clean:
