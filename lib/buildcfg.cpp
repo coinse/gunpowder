@@ -150,7 +150,6 @@ public:
     }
 
     void convertCompositePredicate(Expr *Cond, int stmtid, llvm::raw_string_ostream& S, Rewriter TheRewriter) {
-      //if (BinaryOperator *o = dyn_cast<BinaryOperator>(Cond)) {
       if (isa<BinaryOperator>(Cond)) {
         BinaryOperator *o = dyn_cast<BinaryOperator>(Cond);
         BinaryOperator::Opcode Opc = o->getOpcode();
@@ -187,10 +186,8 @@ public:
         convertCompositePredicate(o->getRHS(), stmtid, S, TheRewriter);
         S << "," << stmtid << ")";
       }
-      else if(UnaryOperator *o = dyn_cast<UnaryOperator>(Cond)) {
-        llvm::errs() << "UnaryOp\n";
-        o->getSubExpr()->printPretty(llvm::errs(), nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-        llvm::errs() << "\n";
+      else if(isa<UnaryOperator>(Cond)) {
+        UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
         UnaryOperator::Opcode Opc = o->getOpcode();
         switch(Opc){
           case UO_LNot:
@@ -205,9 +202,6 @@ public:
       }
       else if(isa<ParenExpr>(Cond)){
         ParenExpr *o = dyn_cast<ParenExpr>(Cond);
-        llvm::errs() << "ParenExpr\n";
-        o->getSubExpr()->printPretty(llvm::errs(), nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-        llvm::errs() << "\n";
         convertCompositePredicate(o->getSubExpr(), stmtid, S, TheRewriter);
       }
       else{
