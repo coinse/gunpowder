@@ -145,11 +145,13 @@ public:
     void insertbranchlog(Expr *Cond, int stmtid) {
       std::string str;
       llvm::raw_string_ostream S(str);
-      convertCompositePredicate(Cond, stmtid, S, TheRewriter);
+      S << "inst(" << stmtid << ", ";
+      convertCompositePredicate(Cond, S, TheRewriter);
+      S << ")" ;
       TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
     }
 
-    void convertCompositePredicate(Expr *Cond, int stmtid, llvm::raw_string_ostream& S, Rewriter TheRewriter) {
+    void convertCompositePredicate(Expr *Cond, llvm::raw_string_ostream& S, Rewriter TheRewriter) {
       if (isa<BinaryOperator>(Cond)) {
         BinaryOperator *o = dyn_cast<BinaryOperator>(Cond);
         BinaryOperator::Opcode Opc = o->getOpcode();
@@ -181,10 +183,10 @@ public:
           default:
             return;
         }
-        convertCompositePredicate(o->getLHS(), stmtid, S, TheRewriter);
-        S << ",";
-        convertCompositePredicate(o->getRHS(), stmtid, S, TheRewriter);
-        S << "," << stmtid << ")";
+        convertCompositePredicate(o->getLHS(), S, TheRewriter);
+        S << ", ";
+        convertCompositePredicate(o->getRHS(), S, TheRewriter);
+        S << ")";
       }
       else if(isa<UnaryOperator>(Cond)) {
         UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
@@ -196,13 +198,13 @@ public:
           default:
             return;
         }
-        convertCompositePredicate(o->getSubExpr(), stmtid, S, TheRewriter);
-        S << "," << stmtid << ")";
+        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+        S << ")";
 
       }
       else if(isa<ParenExpr>(Cond)){
         ParenExpr *o = dyn_cast<ParenExpr>(Cond);
-        convertCompositePredicate(o->getSubExpr(), stmtid, S, TheRewriter);
+        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
       }
       else{
         Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
