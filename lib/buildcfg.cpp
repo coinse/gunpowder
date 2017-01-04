@@ -343,7 +343,7 @@ ControlDependency instrument(StringRef Filename) {
     ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
         TheCompInst.getASTContext());
 
-    TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"util/branchdistance.c\"\n");
+    TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
 
     // At this point the rewriter's buffer should be full with the rewritten
     // file contents.
