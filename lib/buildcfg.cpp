@@ -181,6 +181,7 @@ public:
             S << "l_or(";
             break;
           default:
+            Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
             return;
         }
         convertCompositePredicate(o->getLHS(), S, TheRewriter);
