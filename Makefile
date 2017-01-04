@@ -108,6 +108,7 @@ endif
 # Internal paths in this project: where to find sources, and where to put
 # build artifacts.
 
+MKDIR = mkdir
 SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
@@ -118,6 +119,7 @@ TARGET= $(BUILDDIR)/buildcfg
 all: $(TARGET)
 
 $(TARGET): $(SRCS)
+	@`[ -d $(BUILDDIR) ] || $(MKDIR) $(BUILDDIR)`
 	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
 
