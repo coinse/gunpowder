@@ -101,8 +101,8 @@ public:
     }
 
     int assignDep (Stmt *s, Stmt *parent, bool cond) {
-        int stmtid;
-        int parentid;
+        int stmtid = 0;
+        int parentid = 0;
 
         if(isa<DoStmt>(s)) {
             stmtid = assignStmtid(s);
@@ -143,38 +143,72 @@ public:
     }
 
     void insertbranchlog(Expr *Cond, int stmtid) {
-        if (BinaryOperator *o = dyn_cast<BinaryOperator>(Cond)) {
-          std::string str;
-          llvm::raw_string_ostream S(str);
-          BinaryOperator::Opcode Opc = o->getOpcode();
-          switch (Opc) {
-            case BO_GT:
-              S << "isGreater(";
-              break;
-            case BO_GE:
-              S << "isEqGreater(";
-              break;
-            case BO_LT:
-              S << "isLess(";
-              break;
-            case BO_LE:
-              S << "isEqLess(";
-              break;
-            case BO_EQ:
-              S << "isEqual(";
-              break;
-            case BO_NE:
-              S << "isnotEqual(";
-              break;
-            default:
-              return;
-          }
-          (o->getLHS())->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-          S << ",";
-          (o->getRHS())->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-          S << "," << stmtid << ")";
-          TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+      std::string str;
+      llvm::raw_string_ostream S(str);
+      S << "inst(" << stmtid << ", ";
+      convertCompositePredicate(Cond, S, TheRewriter);
+      S << ")" ;
+      TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+    }
+
+    void convertCompositePredicate(Expr *Cond, llvm::raw_string_ostream& S, Rewriter TheRewriter) {
+      if (isa<BinaryOperator>(Cond)) {
+        BinaryOperator *o = dyn_cast<BinaryOperator>(Cond);
+        BinaryOperator::Opcode Opc = o->getOpcode();
+        switch (Opc) {
+          case BO_GT:
+            S << "isGreater(";
+            break;
+          case BO_GE:
+            S << "isEqGreater(";
+            break;
+          case BO_LT:
+            S << "isLess(";
+            break;
+          case BO_LE:
+            S << "isEqLess(";
+            break;
+          case BO_EQ:
+            S << "isEqual(";
+            break;
+          case BO_NE:
+            S << "isnotEqual(";
+            break;
+          case BO_LAnd:
+            S << "l_and(";
+            break;
+          case BO_LOr:
+            S << "l_or(";
+            break;
+          default:
+            return;
         }
+        convertCompositePredicate(o->getLHS(), S, TheRewriter);
+        S << ", ";
+        convertCompositePredicate(o->getRHS(), S, TheRewriter);
+        S << ")";
+      }
+      else if(isa<UnaryOperator>(Cond)) {
+        UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
+        UnaryOperator::Opcode Opc = o->getOpcode();
+        switch(Opc){
+          case UO_LNot:
+            S << "l_not(";
+            break;
+          default:
+            return;
+        }
+        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+        S << ")";
+
+      }
+      else if(isa<ParenExpr>(Cond)){
+        ParenExpr *o = dyn_cast<ParenExpr>(Cond);
+        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+      }
+      else{
+        Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
+      }
     }
 
     bool VisitStmt(Stmt *s) {
