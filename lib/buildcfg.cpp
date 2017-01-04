@@ -299,12 +299,7 @@ private:
     MyASTVisitor Visitor;
 };
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        llvm::errs() << "Usage: main <filename>\n";
-        return 1;
-    }
-
+void instrument(StringRef Filename) {
     // CompilerInstance will hold the instance of the Clang compiler for us,
     // managing the various objects needed to run the compiler.
     CompilerInstance TheCompInst;
@@ -332,7 +327,7 @@ int main(int argc, char *argv[]) {
     TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
     // Set the main file handled by the source manager to the input file.
-    const FileEntry *FileIn = FileMgr.getFile(argv[1]);
+    const FileEntry *FileIn = FileMgr.getFile(Filename);
     SourceMgr.setMainFileID(
             SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
     TheCompInst.getDiagnosticClient().BeginSourceFile(
@@ -342,22 +337,19 @@ int main(int argc, char *argv[]) {
     // ParseAST.
     MyASTConsumer TheConsumer(TheRewriter);
 
-	// Parse the file to AST, registering our consumer as the AST consumer.
-	ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-			TheCompInst.getASTContext());
+    // Parse the file to AST, registering our consumer as the AST consumer.
+    ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+        TheCompInst.getASTContext());
 
-  TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"util/branchdistance.c\"\n");
+    TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"util/branchdistance.c\"\n");
 
-	// At this point the rewriter's buffer should be full with the rewritten
-	// file contents.
-	const RewriteBuffer *RewriteBuf =
-		TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-  std::string f = std::string(argv[1]);
-  std::string filename = f.substr(0, f.find_last_of('.'));
-  filename = filename + ".inst.c";
-  std::ofstream out(filename.c_str());
-  out << std::string(RewriteBuf->begin(), RewriteBuf->end());
-
-
-	return 0;
+    // At this point the rewriter's buffer should be full with the rewritten
+    // file contents.
+    const RewriteBuffer *RewriteBuf =
+      TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
+    std::string f = std::string(Filename);
+    std::string filename = f.substr(0, f.find_last_of('.'));
+    filename = filename + ".inst.c";
+    std::ofstream out(filename.c_str());
+    out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 }
