@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 #include "clang/Analysis/CFG.h"
 #include "clang/AST/ASTConsumer.h"
@@ -262,7 +263,10 @@ public:
     }
 
     bool VisitFunctionDecl(FunctionDecl *f) {
-        return true;
+      if (f->hasBody()) {
+        printf("function: %s\n", f->getName());
+      }
+      return true;
     }
 
 private:
@@ -283,11 +287,9 @@ public:
         for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b){
             // Traverse the declaration using our AST visitor.
             Visitor.TraverseDecl(*b);
-            for(auto &it : Visitor.branchids){
-                if (Visitor.getDep(it.first).second == NULL){
-                    int stmtid = Visitor.getStmtid(it.first);
-                    Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
-                }
+            if (FunctionDecl *f = dyn_cast<FunctionDecl>(*b)) {
+              if (f->hasBody())
+                std::cout << f->getNumParams() << std::endl;
             }
         }
         return true;
@@ -297,8 +299,8 @@ public:
         return Visitor.getControlDep();
     }
 
-private:
     MyASTVisitor Visitor;
+private:
 };
 
 ControlDependency instrument(StringRef Filename) {
@@ -342,6 +344,14 @@ ControlDependency instrument(StringRef Filename) {
     // Parse the file to AST, registering our consumer as the AST consumer.
     ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
         TheCompInst.getASTContext());
+    MyASTVisitor Visitor = TheConsumer.Visitor;
+    for(auto &it : Visitor.branchids){
+        std::cout << it.first << it.second << std::endl;
+        if (Visitor.getDep(it.first).second == NULL){
+            int stmtid = Visitor.getStmtid(it.first);
+            Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
+        }
+    }
 
     TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
 
