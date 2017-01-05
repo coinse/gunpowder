@@ -25,12 +25,18 @@
 
 using namespace clang;
 
+typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
+
 class MyASTVisitor : public RecursiveASTVisitor<MyASTVisitor> {
 public:
     MyASTVisitor(Rewriter &R) : TheRewriter(R) {id = 0;}
 
     typedef std::vector<std::pair<Stmt*, int>> branchidsty;
     branchidsty branchids;
+
+    ControlDependency getControlDep() {
+        return cfg;
+    }
 
     struct isidExist {
         isidExist(Stmt *s): _s(s) {}
@@ -88,16 +94,7 @@ public:
         ss << stmtid;
         ss << "*/\n";
         TheRewriter.InsertText(Loc, ss.str(), true, true);
-
-        std::ofstream ofs;
-        ofs.open("controldep.txt", std::ofstream::out | std::ofstream::app);
-        ofs << stmtid;
-        ofs << " ";
-        ofs << parentid;
-        ofs << " ";
-        ofs << (cond ? "true" : "false");
-        ofs << "\n";
-        ofs.close();
+        cfg.push_back(std::tuple<int, int, bool>(stmtid, parentid, cond));
     }
 
     int assignDep (Stmt *s, Stmt *parent, bool cond) {
@@ -271,6 +268,7 @@ public:
 private:
     Rewriter &TheRewriter;
     int id;
+    ControlDependency cfg;
 };
 
 // Implementation of the ASTConsumer interface for reading an AST produced
@@ -295,11 +293,15 @@ public:
         return true;
     }
 
+    ControlDependency getControlDep() {
+        return Visitor.getControlDep();
+    }
+
 private:
     MyASTVisitor Visitor;
 };
 
-void instrument(StringRef Filename) {
+ControlDependency instrument(StringRef Filename) {
     // CompilerInstance will hold the instance of the Clang compiler for us,
     // managing the various objects needed to run the compiler.
     CompilerInstance TheCompInst;
@@ -352,4 +354,6 @@ void instrument(StringRef Filename) {
     filename = filename + ".inst.c";
     std::ofstream out(filename.c_str());
     out << std::string(RewriteBuf->begin(), RewriteBuf->end());
+
+    return TheConsumer.getControlDep();
 }
