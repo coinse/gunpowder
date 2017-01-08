@@ -303,67 +303,77 @@ public:
 private:
 };
 
-ControlDependency instrument(StringRef Filename) {
-    // CompilerInstance will hold the instance of the Clang compiler for us,
-    // managing the various objects needed to run the compiler.
-    CompilerInstance TheCompInst;
-    TheCompInst.createDiagnostics();
+class CAVM {
+public:
+    CAVM(StringRef Filename) : Filename(Filename) {
+        // CompilerInstance will hold the instance of the Clang compiler for us,
+        // managing the various objects needed to run the compiler.
+        TheCompInst.createDiagnostics();
 
-    LangOptions &lo = TheCompInst.getLangOpts();
-    lo.CPlusPlus = 1;
+        LangOptions &lo = TheCompInst.getLangOpts();
+        lo.CPlusPlus = 1;
 
-    // Initialize target info with the default triple for our platform.
-    auto TO = std::make_shared<TargetOptions>();
-    TO->Triple = llvm::sys::getDefaultTargetTriple();
-    TargetInfo *TI =
-            TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-    TheCompInst.setTarget(TI);
+        // Initialize target info with the default triple for our platform.
+        auto TO = std::make_shared<TargetOptions>();
+        TO->Triple = llvm::sys::getDefaultTargetTriple();
+        TargetInfo *TI =
+                TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+        TheCompInst.setTarget(TI);
 
-    TheCompInst.createFileManager();
-    FileManager &FileMgr = TheCompInst.getFileManager();
-    TheCompInst.createSourceManager(FileMgr);
-    SourceManager &SourceMgr = TheCompInst.getSourceManager();
-    TheCompInst.createPreprocessor(TU_Module);
-    TheCompInst.createASTContext();
+        TheCompInst.createFileManager();
+        FileManager &FileMgr = TheCompInst.getFileManager();
+        TheCompInst.createSourceManager(FileMgr);
+        SourceManager &SourceMgr = TheCompInst.getSourceManager();
+        TheCompInst.createPreprocessor(TU_Module);
+        TheCompInst.createASTContext();
 
-    // A Rewriter helps us manage the code rewriting task.
-    Rewriter TheRewriter;
-    TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
+        // A Rewriter helps us manage the code rewriting task.
+        TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
-    // Set the main file handled by the source manager to the input file.
-    const FileEntry *FileIn = FileMgr.getFile(Filename);
-    SourceMgr.setMainFileID(
-            SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
-    TheCompInst.getDiagnosticClient().BeginSourceFile(
-            TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
+        // Set the main file handled by the source manager to the input file.
+        const FileEntry *FileIn = FileMgr.getFile(Filename);
+        SourceMgr.setMainFileID(
+                SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
+        TheCompInst.getDiagnosticClient().BeginSourceFile(
+                TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
 
-    // Create an AST consumer instance which is going to get called by
-    // ParseAST.
-    MyASTConsumer TheConsumer(TheRewriter);
-
-    // Parse the file to AST, registering our consumer as the AST consumer.
-    ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-        TheCompInst.getASTContext());
-    MyASTVisitor Visitor = TheConsumer.Visitor;
-    for(auto &it : Visitor.branchids){
-        std::cout << it.first << it.second << std::endl;
-        if (Visitor.getDep(it.first).second == NULL){
-            int stmtid = Visitor.getStmtid(it.first);
-            Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
-        }
     }
 
-    TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
+    ControlDependency instrument() {
+        // Create an AST consumer instance which is going to get called by
+        // ParseAST.
+        MyASTConsumer TheConsumer(TheRewriter);
+        SourceManager &SourceMgr = TheCompInst.getSourceManager();
 
-    // At this point the rewriter's buffer should be full with the rewritten
-    // file contents.
-    const RewriteBuffer *RewriteBuf =
-      TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-    std::string f = std::string(Filename);
-    std::string filename = f.substr(0, f.find_last_of('.'));
-    filename = filename + ".inst.c";
-    std::ofstream out(filename.c_str());
-    out << std::string(RewriteBuf->begin(), RewriteBuf->end());
+        // Parse the file to AST, registering our consumer as the AST consumer.
+        ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+            TheCompInst.getASTContext());
+        MyASTVisitor Visitor = TheConsumer.Visitor;
+        for(auto &it : Visitor.branchids){
+            if (Visitor.getDep(it.first).second == NULL){
+                int stmtid = Visitor.getStmtid(it.first);
+                Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
+            }
+        }
 
-    return TheConsumer.getControlDep();
-}
+        TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
+
+        // At this point the rewriter's buffer should be full with the rewritten
+        // file contents.
+        const RewriteBuffer *RewriteBuf =
+          TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
+        std::string f = std::string(Filename);
+        std::string filename = f.substr(0, f.find_last_of('.'));
+        filename = filename + ".inst.c";
+        std::ofstream out(filename.c_str());
+        out << std::string(RewriteBuf->begin(), RewriteBuf->end());
+
+        return TheConsumer.getControlDep();
+    }
+
+private:
+    CompilerInstance TheCompInst;
+    Rewriter TheRewriter;
+    StringRef Filename;
+};
+
