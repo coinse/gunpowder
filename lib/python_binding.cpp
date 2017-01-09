@@ -46,8 +46,19 @@ Parser_instrument(Parser *self, PyObject *args)
   return list;
 }
 
+static PyObject *
+Parser_getDecl(Parser *self, PyObject *args)
+{
+  const char *functionName;
+
+  if (!PyArg_ParseTuple(args, "s", &functionName))
+    return NULL;
+  return PyUnicode_FromString(self->cavm->getDeclaration(functionName).c_str());
+}
+
 static PyMethodDef methods[] = {
   {"instrument", (PyCFunction)Parser_instrument, METH_VARARGS, "Instrument given c code."},
+  {"get_decl", (PyCFunction)Parser_getDecl, METH_VARARGS, "Get declaration given function."},
   {NULL}
 };
 
