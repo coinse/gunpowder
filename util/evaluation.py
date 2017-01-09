@@ -48,8 +48,7 @@ def get_divergence_point(trace, dependency_chain):
 def fitness(targetbranch, inputvector):
     if os.path.exists("trace"):
         os.remove("trace")
-    run = subprocess.Popen(["./a.out", str(inputvector[0]), str(inputvector[1]), str(inputvector[2])])
-    run.wait()
+    run = subprocess.call(["./a.out", str(inputvector[0]), str(inputvector[1]), str(inputvector[2])])
     trace = get_trace()
     dependency_map = get_depmaps()
 
