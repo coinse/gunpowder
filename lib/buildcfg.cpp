@@ -24,6 +24,8 @@
 #include "llvm/Support/Host.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "./consumer.cpp"
+
 using namespace clang;
 
 typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
@@ -263,9 +265,6 @@ public:
     }
 
     bool VisitFunctionDecl(FunctionDecl *f) {
-      if (f->hasBody()) {
-        printf("function: %s\n", f->getName());
-      }
       return true;
     }
 
@@ -279,17 +278,18 @@ private:
 // by the Clang parser.
 class MyASTConsumer : public ASTConsumer {
 public:
-    MyASTConsumer(Rewriter &R) : Visitor(R) {}
+    MyASTConsumer(StringRef functionName, Rewriter &R) 
+      : target(functionName), Visitor(R) {}
 
     // Override the method that gets called for each parsed top-level
     // declaration.
     virtual bool HandleTopLevelDecl(DeclGroupRef DR) {
         for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b){
-            // Traverse the declaration using our AST visitor.
-            Visitor.TraverseDecl(*b);
             if (FunctionDecl *f = dyn_cast<FunctionDecl>(*b)) {
-              if (f->hasBody())
-                std::cout << f->getNumParams() << std::endl;
+              if (f->getName() == target) {
+                // Traverse the declaration using our AST visitor.
+                Visitor.TraverseDecl(*b);
+              }
             }
         }
         return true;
@@ -301,11 +301,12 @@ public:
 
     MyASTVisitor Visitor;
 private:
+    StringRef target;
 };
 
 class CAVM {
 public:
-    CAVM(StringRef Filename) : Filename(Filename) {
+    CAVM(StringRef fileName) : fileName(fileName) {
         // CompilerInstance will hold the instance of the Clang compiler for us,
         // managing the various objects needed to run the compiler.
         TheCompInst.createDiagnostics();
@@ -331,7 +332,7 @@ public:
         TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
         // Set the main file handled by the source manager to the input file.
-        const FileEntry *FileIn = FileMgr.getFile(Filename);
+        const FileEntry *FileIn = FileMgr.getFile(fileName);
         SourceMgr.setMainFileID(
                 SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
         TheCompInst.getDiagnosticClient().BeginSourceFile(
@@ -339,10 +340,10 @@ public:
 
     }
 
-    ControlDependency instrument() {
+    ControlDependency instrument(StringRef functionName) {
         // Create an AST consumer instance which is going to get called by
         // ParseAST.
-        MyASTConsumer TheConsumer(TheRewriter);
+        MyASTConsumer TheConsumer(functionName, TheRewriter);
         SourceManager &SourceMgr = TheCompInst.getSourceManager();
 
         // Parse the file to AST, registering our consumer as the AST consumer.
@@ -362,7 +363,7 @@ public:
         // file contents.
         const RewriteBuffer *RewriteBuf =
           TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-        std::string f = std::string(Filename);
+        std::string f = std::string(fileName);
         std::string filename = f.substr(0, f.find_last_of('.'));
         filename = filename + ".inst.c";
         std::ofstream out(filename.c_str());
@@ -371,9 +372,21 @@ public:
         return TheConsumer.getControlDep();
     }
 
+    std::string getDeclaration(StringRef functionName) {
+        // TODO: Find a way to avoid resetting ASTContext.
+        TheCompInst.createASTContext();
+        DeclarationConsumer TheConsumer(functionName, TheRewriter);
+
+        // Parse the file to AST, registering our consumer as the AST consumer.
+        ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+            TheCompInst.getASTContext());
+
+        return TheConsumer.getResult();
+    }
+
 private:
     CompilerInstance TheCompInst;
     Rewriter TheRewriter;
-    StringRef Filename;
+    StringRef fileName;
 };
 

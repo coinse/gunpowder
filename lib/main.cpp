@@ -8,9 +8,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     CAVM c(argv[1]);
-    ControlDependency cfg = c.instrument();
+    ControlDependency cfg = c.instrument("get_type");
     for (const auto &i : cfg) {
       std::cout<<std::get<0>(i)<<std::get<1>(i)<<std::get<2>(i)<<std::endl;
     }
+    std::cout << c.getDeclaration("get_type") << std::endl;
     return 0;
 }
