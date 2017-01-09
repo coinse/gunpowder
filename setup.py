@@ -76,7 +76,7 @@ if platform.system() != 'Darwin':
   CLANG_LIBS = ['-Wl,--start-group']+CLANG_LIBS+['-Wl,--end-group']
 
 module = Extension(
-  'clang',
+  'cavm',
   sources=['lib/python_binding.cpp'],
   include_dirs=CLANG_INCLUDES+include_dirs,
   library_dirs=lib_dirs,
@@ -85,7 +85,7 @@ module = Extension(
 )
 
 setup(
-  name = 'clang',
+  name = 'cavm',
   version = '1.0',
   ext_modules = [module]
 )

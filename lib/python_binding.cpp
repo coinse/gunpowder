@@ -2,14 +2,38 @@
 #include <Python.h>
 #include "./buildcfg.cpp"
 
-static PyObject *
-clang_instrument(PyObject *self, PyObject *args)
+struct Parser
+{
+  PyObject_HEAD
+  CAVM *cavm;
+};
+
+static void
+Parser_dealloc(Parser *self)
+{
+  if (self->cavm)
+    delete self->cavm;
+}
+
+static int
+Parser_init(Parser *self, PyObject *args, PyObject *kwds)
 {
   const char *filename;
 
   if (!PyArg_ParseTuple(args, "s", &filename))
+    return -1;
+  self->cavm = new CAVM(filename);
+  return 0;
+}
+
+static PyObject *
+Parser_instrument(Parser *self, PyObject *args)
+{
+  const char *functionName;
+
+  if (!PyArg_ParseTuple(args, "s", &functionName))
     return NULL;
-  ControlDependency cfg = instrument(filename);
+  ControlDependency cfg = self->cavm->instrument(functionName);
   PyObject* list = PyList_New(0);
   for (const auto &i : cfg) {
     PyObject *item = PyTuple_New(3);
@@ -23,21 +47,46 @@ clang_instrument(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef methods[] = {
-  {"instrument", clang_instrument, METH_VARARGS, "Instrument given c code."},
-  {NULL, NULL, 0, NULL}
+  {"instrument", (PyCFunction)Parser_instrument, METH_VARARGS, "Instrument given c code."},
+  {NULL}
+};
+
+static PyType_Slot CAVMTypeSlots[] = {
+  {Py_tp_dealloc, (void *)Parser_dealloc},
+  {Py_tp_init,    (void *)Parser_init},
+  {Py_tp_methods, (void *)methods},
+  {0, NULL}
+};
+
+static PyType_Spec CAVMTypeSpec = {
+  "cavm.Parser",
+  sizeof(Parser),
+  0,
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_BASETYPE,
+  CAVMTypeSlots
 };
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "clang",
+  "cavm",
   NULL,
   -1,
-  methods
+  NULL
 };
 
+static PyTypeObject *ParserType = NULL;
+
 PyMODINIT_FUNC
-PyInit_clang(void)
+PyInit_cavm(void)
 {
-  return PyModule_Create(&module);
+  ParserType = (PyTypeObject *)PyType_FromSpec(&CAVMTypeSpec);
+  if (PyType_Ready(ParserType) < 0)
+    return NULL;
+  PyObject *m = PyModule_Create(&module);
+  if (!m)
+    return NULL;
+  Py_INCREF(ParserType);
+  PyModule_AddObject(m, "Parser", (PyObject *)ParserType);
+  return m;
 }
 
