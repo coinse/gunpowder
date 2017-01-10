@@ -265,7 +265,8 @@ public:
     }
 
     bool VisitFunctionDecl(FunctionDecl *f) {
-      return true;
+        TheRewriter.InsertTextAfter(f->getLocStart(), "extern \"C\"\n");
+        return true;
     }
 
 private:
@@ -346,6 +347,7 @@ public:
         MyASTConsumer TheConsumer(functionName, TheRewriter);
         SourceManager &SourceMgr = TheCompInst.getSourceManager();
 
+        TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
         // Parse the file to AST, registering our consumer as the AST consumer.
         ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
             TheCompInst.getASTContext());
@@ -356,8 +358,6 @@ public:
                 Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
             }
         }
-
-        TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
 
         // At this point the rewriter's buffer should be full with the rewritten
         // file contents.
