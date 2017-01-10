@@ -1,15 +1,21 @@
-def avm_search(input_vector):
+import random
+from evaluation import ObjFunc
+
+def avm_search(objfunc, input_vector):
     best = input_vector
     for idx in range(len(input_vector)):
-        candidate = iterative_pattern_search(best, idx)
-        if fitness(best) > fitness(candidate):
+        candidate = iterative_pattern_search(objfunc, best, idx)
+        if objfunc.fitness(best) > objfunc.fitness(candidate):
             best = candidate
-    return best
+#        print("AVM", best)
+    return [best, objfunc.fitness(best)]
 
 
-def iterative_pattern_search(input_vector, idx):
+def iterative_pattern_search(objfunc, input_vector, idx):
     SCALING_FACTOR = 2
     STEP = 1
+    #TARGET = target
+
 
     def pattern_search(vector, index):
         direction = search_direction(vector, index)
@@ -21,10 +27,11 @@ def iterative_pattern_search(input_vector, idx):
             candidate = better[:]
             candidate[index] += gap
             gap *= SCALING_FACTOR
-            if fitness(candidate) < fitness(better):
+            if objfunc.fitness(candidate) < objfunc.fitness(better):
                 better = candidate
             else:
                 break
+#        print("Pattern", best)
         return better
 
     def search_direction(vector, index):
@@ -34,9 +41,9 @@ def iterative_pattern_search(input_vector, idx):
         right = vector[:]
         right[index] += 1
 
-        if fitness(right) < fitness(vector):
+        if objfunc.fitness(right) < objfunc.fitness(vector):
             return 1
-        elif fitness(left) < fitness(vector):
+        elif objfunc.fitness(left) < objfunc.fitness(vector):
             return -1
         else:
             return 0
@@ -44,11 +51,26 @@ def iterative_pattern_search(input_vector, idx):
     best = input_vector
     while True:
         candidate = pattern_search(best, idx)
-        if fitness(best) > fitness(candidate):
+        if objfunc.fitness(best) > objfunc.fitness(candidate):
             best = candidate
         else:
             break
-
+#    print("Iter", best)
     return best
 
-#TODO: fitness(vector), caller of avm_serach(input_vector)
+
+def main():
+    branchlist = [[x, 0] for x in range(8)]
+    branchlist += [[x, 1] for x in range(8)]
+    for target in branchlist:
+        objfunc = ObjFunc(target)
+        inputvector = [random.randrange(1, 10) for x in range(3)]
+        result = avm_search(objfunc, inputvector)
+        if result[1] == 0:
+            print(target, result[0])
+        else:
+            print(target, "fail", result[0])
+
+
+if __name__ == "__main__":
+    main()
