@@ -25,4 +25,8 @@ traceItem getTrace(int idx) {
 int getTraceSize() {
     return CAVM_TRACE.size();
 }
+
+void resetTrace() {
+    CAVM_TRACE.clear();
+}
 }

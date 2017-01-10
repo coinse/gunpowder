@@ -1,26 +1,13 @@
 import os
 import subprocess
 
-def get_trace():
-    trace = []
-    with open('trace') as tracefile:
-        for line in tracefile:
-            parts = line.split()
-            trace.append([int(parts[0]), int(parts[1]), float(parts[2]), float(parts[3])])
-
-    return trace
-
-
-def get_depmaps():
-    Depmaps = {}
-    with open('controldep.txt') as depfile:
-        for line in depfile:
-            parts = line.split()
-            if int(parts[1]) != -1:
-                predicate = 1 if parts[2] == "true" else 0
-                Depmaps[int(parts[0])] = [int(parts[1]), predicate]
-
-    return Depmaps
+def get_trace(dynamic_lib):
+  trace = []
+  for i in range(dynamic_lib.getTraceSize()):
+    t = dynamic_lib.getTrace(i)
+    trace.append((t.stmtid, t.result, t.trueDistance, t.falseDistance))
+  dynamic_lib.resetTrace()
+  return trace
 
 
 def get_dep_chain(dependency_map, targetbranch):
@@ -45,16 +32,19 @@ def get_divergence_point(trace, dependency_chain):
     return None
 
 class ObjFunc:
-    def __init__(self, targetbranch):
-        self.targetbranch = targetbranch
-        self.dependency_map = get_depmaps()
-        self.dependency_chain = get_dep_chain(self.dependency_map, targetbranch)
+    def __init__(self, target_ftn, target_bid, dlib, ffi, cfg):
+        self.target_function = target_ftn
+        self.target_branch_id = target_bid
+        self.dlib = dlib
+        self.ffi = ffi
+        self.dependency_chain = get_dep_chain(cfg, target_bid)
 
-    def fitness(self, inputvector):
-        if os.path.exists("trace"):
-            os.remove("trace")
-        run = subprocess.call(["./a.out", str(inputvector[0]), str(inputvector[1]), str(inputvector[2])])
-        trace = get_trace()
+    def get_fitness(self, inputvector):
+        C = self.ffi.dlopen(self.dlib)
+        f = getattr(C, self.target_function)
+        # TODO: Make general interface
+        f(inputvector[0], inputvector[1], inputvector[2])
+        trace = get_trace(C)
         divpoint = get_divergence_point(trace, self.dependency_chain)
         if divpoint == None:
             return 0
