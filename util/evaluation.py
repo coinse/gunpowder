@@ -44,20 +44,22 @@ def get_divergence_point(trace, dependency_chain):
 
     return None
 
+class ObjFunc:
+    def __init__(self, targetbranch):
+        self.targetbranch = targetbranch
+        self.dependency_map = get_depmaps()
+        self.dependency_chain = get_dep_chain(self.dependency_map, targetbranch)
 
-def fitness(targetbranch, inputvector):
-    if os.path.exists("trace"):
-        os.remove("trace")
-    run = subprocess.call(["./a.out", str(inputvector[0]), str(inputvector[1]), str(inputvector[2])])
-    trace = get_trace()
-    dependency_map = get_depmaps()
+    def fitness(self, inputvector):
+        if os.path.exists("trace"):
+            os.remove("trace")
+        run = subprocess.call(["./a.out", str(inputvector[0]), str(inputvector[1]), str(inputvector[2])])
+        trace = get_trace()
+        divpoint = get_divergence_point(trace, self.dependency_chain)
+        if divpoint == None:
+            return 0
 
-    dependency_chain = get_dep_chain(dependency_map, targetbranch)
-    divpoint = get_divergence_point(trace, dependency_chain)
-    if divpoint == None:
-        return 0
-
-    app_lv = divpoint[1]
-    branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
-    return app_lv + (1 - 1.001 ** (-branch_dist))
+        app_lv = divpoint[1]
+        branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
+        return app_lv + (1 - 1.001 ** (-branch_dist))
     
