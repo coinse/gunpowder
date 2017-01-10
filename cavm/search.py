@@ -59,7 +59,7 @@ def iterative_pattern_search(objfunc, input_vector, idx):
     return best
 
 
-def main():
+def search():
     branchlist = [[x, 0] for x in range(8)]
     branchlist += [[x, 1] for x in range(8)]
     for target in branchlist:
@@ -70,7 +70,3 @@ def main():
             print(target, result[0])
         else:
             print(target, "fail", result[0])
-
-
-if __name__ == "__main__":
-    main()
