@@ -38,8 +38,10 @@ class ObjFunc:
         self.dlib = dlib
         self.ffi = ffi
         self.dependency_chain = get_dep_chain(cfg, target_bid)
+        self.counter = 0
 
     def get_fitness(self, inputvector):
+        self.counter += 1
         C = self.ffi.dlopen(self.dlib)
         f = getattr(C, self.target_function)
         f(*inputvector)
