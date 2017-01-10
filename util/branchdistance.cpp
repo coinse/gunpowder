@@ -1,5 +1,5 @@
 #include <math.h>
-#include "log.c"
+#include "log.cpp"
 
 double const K = 1.0;
 

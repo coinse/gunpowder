@@ -347,7 +347,7 @@ public:
         MyASTConsumer TheConsumer(functionName, TheRewriter);
         SourceManager &SourceMgr = TheCompInst.getSourceManager();
 
-        TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.c\"\n");
+        TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.cpp\"\n");
         // Parse the file to AST, registering our consumer as the AST consumer.
         ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
             TheCompInst.getASTContext());
@@ -365,7 +365,7 @@ public:
           TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
         std::string f = std::string(fileName);
         std::string filename = f.substr(0, f.find_last_of('.'));
-        filename = filename + ".inst.c";
+        filename = filename + ".inst.cpp";
         std::ofstream out(filename.c_str());
         out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 
