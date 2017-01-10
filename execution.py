@@ -6,7 +6,7 @@ from cffi import FFI
 def get_trace(dynamic_lib):
   trace = []
   for i in range(dynamic_lib.getTraceSize()):
-    t = dynamic_lib.getTrace()
+    t = dynamic_lib.getTrace(i)
     trace.append((t.stmtid, t.result, t.trueDistance, t.falseDistance))
   return trace
 
@@ -32,7 +32,7 @@ if args.function:
       double falseDistance;
     } traceItem;
 
-    traceItem getTrace();
+    traceItem getTrace(int idx);
 
     int getTraceSize();
   """)
