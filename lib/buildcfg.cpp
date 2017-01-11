@@ -172,7 +172,7 @@ public:
             S << "isEqual(";
             break;
           case BO_NE:
-            S << "isnotEqual(";
+            S << "isNotEqual(";
             break;
           case BO_LAnd:
             S << "l_and(";
@@ -188,6 +188,22 @@ public:
         S << ", ";
         convertCompositePredicate(o->getRHS(), S, TheRewriter);
         S << ")";
+      }
+      else if(isa<ImplicitCastExpr>(Cond)) {
+        ImplicitCastExpr *c = dyn_cast<ImplicitCastExpr>(Cond);
+        switch (c->getCastKind()) {
+          case CK_MemberPointerToBoolean:
+          case CK_PointerToBoolean:
+          case CK_IntegralToBoolean:
+          case CK_FloatingToBoolean:
+          case CK_FloatingComplexToBoolean:
+            S << "isNotEqual(";
+            Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
+            S << ", 0)";
+            break;
+          default:
+            convertCompositePredicate(c->getSubExpr(), S, TheRewriter);
+        }
       }
       else if(isa<UnaryOperator>(Cond)) {
         UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
