@@ -39,18 +39,26 @@ class ObjFunc:
         self.ffi = ffi
         self.dependency_chain = get_dep_chain(cfg, target_bid)
         self.counter = 0
+        self.dictionary = {}
 
     def get_fitness(self, inputvector):
         self.counter += 1
-        C = self.ffi.dlopen(self.dlib)
-        f = getattr(C, self.target_function)
-        f(*inputvector)
-        trace = get_trace(C)
-        divpoint = get_divergence_point(trace, self.dependency_chain)
-        if divpoint == None:
-            return 0
+        inputtuple = tuple(inputvector)
+        if inputtuple in self.dictionary:
+            return self.dictionary[inputtuple]
+        else:
+            C = self.ffi.dlopen(self.dlib)
+            f = getattr(C, self.target_function)
+            f(*inputvector)
+            trace = get_trace(C)
+            divpoint = get_divergence_point(trace, self.dependency_chain)
+            if divpoint == None:
+                self.dictionary[inputtuple] = 0
+                return 0
 
-        app_lv = divpoint[1]
-        branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
-        return app_lv + (1 - 1.001 ** (-branch_dist))
+            app_lv = divpoint[1]
+            branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
+            fitness = app_lv + (1 - 1.001 ** (-branch_dist))
+            self.dictionary[inputtuple] = fitness
+            return fitness
     
