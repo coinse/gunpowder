@@ -53,7 +53,17 @@ Parser_getDecl(Parser *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "s", &functionName))
     return NULL;
-  return PyUnicode_FromString(self->cavm->getDeclaration(functionName).c_str());
+  std::tuple<std::string, std::vector<std::string>> ret = self->cavm->getDeclaration(functionName);
+
+  PyObject *tp = PyTuple_New(2);
+  PyTuple_SetItem(tp, 0, PyUnicode_FromString(std::get<0>(ret).c_str()));
+
+  PyObject *params = PyList_New(0);
+  for (const auto &i : std::get<1>(ret))
+    PyList_Append(params, PyUnicode_FromString(i.c_str()));
+  PyTuple_SetItem(tp, 1, params);
+  
+  return tp;
 }
 
 static PyMethodDef methods[] = {

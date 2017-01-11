@@ -372,7 +372,7 @@ public:
         return TheConsumer.getControlDep();
     }
 
-    std::string getDeclaration(StringRef functionName) {
+    std::tuple<std::string, std::vector<std::string>> getDeclaration(StringRef functionName) {
         // TODO: Find a way to avoid resetting ASTContext.
         TheCompInst.createASTContext();
         DeclarationConsumer TheConsumer(functionName, TheRewriter);
@@ -381,7 +381,7 @@ public:
         ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
             TheCompInst.getASTContext());
 
-        return TheConsumer.getResult();
+        return std::tuple<std::string, std::vector<std::string>>(TheConsumer.getDeclarationString(), TheConsumer.getParams());
     }
 
 private:

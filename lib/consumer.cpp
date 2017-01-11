@@ -22,7 +22,9 @@ public:
                 for (auto &it : f->parameters()) {
                     if (i > 0)
                       ss << ',';
-                    ss << QualType::getAsString(it->getType().split()) << ' ';
+                    std::string t = QualType::getAsString(it->getType().split());
+                    params.push_back(t);
+                    ss << t << ' ';
                     ss << it->getNameAsString();
 
                     i++;
@@ -33,18 +35,23 @@ public:
 
                 //Use LLVM's lexer to get source text.
                 llvm::StringRef ref = Lexer::getSourceText(CharSourceRange::getCharRange(range), rewriter.getSourceMgr(), rewriter.getLangOpts());
-                result = ss.str();
+                decl = ss.str();
               }
             }
         }
         return true;
     }
 
-    std::string getResult() {
-        return result;
+    std::string getDeclarationString() {
+        return decl;
+    }
+
+    std::vector<std::string> getParams() {
+        return params;
     }
 private:
     StringRef target;
     Rewriter rewriter;
-    std::string result;
+    std::string decl;
+    std::vector<std::string> params;
 };
