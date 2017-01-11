@@ -1,5 +1,6 @@
+import sys
 import argparse
-from subprocess import Popen, PIPE
+from subprocess import run, PIPE
 from cffi import FFI
 
 import cavm
@@ -23,8 +24,9 @@ def main():
     p = cavm.Parser(args.target)
     cfg = get_dep_map(p.instrument(args.function))
 
-    with Popen(['g++', '-fPIC', '-shared', '-o', dlib, args.target[:-2]+'.inst.cpp', '-std=c++11'], stdout=PIPE) as proc:
-      print(proc.stdout.read())
+    proc = run(['g++', '-fPIC', '-shared', '-o', dlib, args.target[:-2]+'.inst.cpp', '-std=c++11'], stdout=PIPE, stderr=PIPE)
+    if proc.returncode != 0:
+      sys.exit(proc.stderr)
 
     ffi = FFI()
     ffi.cdef(p.get_decl(args.function))
