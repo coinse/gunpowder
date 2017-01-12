@@ -28,8 +28,9 @@ def main():
     if proc.returncode != 0:
       sys.exit(proc.stderr)
 
+    decl, params = p.get_decl(args.function)
     ffi = FFI()
-    ffi.cdef(p.get_decl(args.function))
+    ffi.cdef(decl)
     ffi.cdef("""
       typedef struct {
         int stmtid;
@@ -45,7 +46,7 @@ def main():
       void resetTrace();
     """)
 
-    avm.search(args.function, dlib, ffi, cfg)
+    avm.search(args.function, dlib, ffi, cfg, params)
 
   else:
     # TODO: print out the list of functions in target code

@@ -42,8 +42,7 @@ class ObjFunc:
     def get_fitness(self, inputvector):
         C = self.ffi.dlopen(self.dlib)
         f = getattr(C, self.target_function)
-        # TODO: Make general interface
-        f(inputvector[0], inputvector[1], inputvector[2])
+        f(*inputvector)
         trace = get_trace(C)
         divpoint = get_divergence_point(trace, self.dependency_chain)
         if divpoint == None:
