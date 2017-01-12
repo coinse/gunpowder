@@ -53,12 +53,13 @@ class ObjFunc:
             trace = get_trace(C)
             divpoint = get_divergence_point(trace, self.dependency_chain)
             if divpoint == None:
-                self.dictionary[inputtuple] = 0
-                return 0
+                self.dictionary[inputtuple] = [0, 0]
+                return [0, 0]
 
             app_lv = divpoint[1]
             branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
-            fitness = app_lv + (1 - 1.001 ** (-branch_dist))
+#            fitness = app_lv + (1 - 1.001 ** (-branch_dist))
+            fitness = [app_lv, branch_dist]
             self.dictionary[inputtuple] = fitness
             return fitness
     

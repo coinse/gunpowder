@@ -17,6 +17,8 @@ def main():
   parser = argparse.ArgumentParser(description='Do AVM search over a given c function')
   parser.add_argument('target', metavar='<target file>', type=str, help='location of target c file')
   parser.add_argument('-f', '--function', metavar='<target function>', type=str, help='name of function', required=False)
+  parser.add_argument('--range', metavar='<initial vector random range>', type=int, help='random range', required=False)
+  parser.add_argument('--termination', metavar='<search iteration bound>', type=int, help='iteration bound', required=False)
   args = parser.parse_args()
 
   if args.function:
@@ -46,7 +48,7 @@ def main():
       void resetTrace();
     """)
 
-    avm.search(args.function, dlib, ffi, cfg, params)
+    avm.search(args.function, dlib, ffi, cfg, args.range, args.termination)
 
   else:
     # TODO: print out the list of functions in target code
