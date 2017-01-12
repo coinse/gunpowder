@@ -48,7 +48,7 @@ def main():
       void resetTrace();
     """)
 
-    avm.search(args.function, dlib, ffi, cfg, args.range, args.termination)
+    avm.search(args.function, dlib, ffi, cfg, params, args.range, args.termination)
 
   else:
     # TODO: print out the list of functions in target code
