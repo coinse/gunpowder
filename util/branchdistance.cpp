@@ -58,7 +58,7 @@ BDist isEqual(int a, int b){
     return BDist(a == b, EQ(a, b), NEQ(a, b));
 }
 
-BDist isnotEqual(int a, int b){
+BDist isNotEqual(int a, int b){
     return BDist(a != b, NEQ(a, b), EQ(a, b));
 }
 
@@ -69,7 +69,6 @@ int inst(int stmtid, BDist distance){
     tracelog(stmtid, distance.result, distance.trueDistance, distance.falseDistance);
     return distance.result;
 }
-
 
 BDist l_and(BDist lhs, BDist rhs){
     if(lhs.result && rhs.result ) return BDist(true, 0.0, fmin(lhs.falseDistance, rhs.falseDistance));
