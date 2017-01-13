@@ -14,51 +14,63 @@ typedef struct _BDist {
     }
 } BDist;
 
-double GT(int a, int b){
+template <typename T>
+double GT(T a, T b){
     return b - a < 0 ? 0.0 : b - a + K;
 }
-double GTE(int a, int b){
+
+template <typename T>
+double GTE(T a, T b){
     return b - a <= 0 ? 0.0 : b - a + K;
 }
 
-double LT(int a, int b){
+template <typename T>
+double LT(T a, T b){
     return a - b < 0 ? 0.0 : a - b + K;
 }
 
-double LTE(int a, int b){
+template <typename T>
+double LTE(T a, T b){
     return a - b <= 0 ? 0.0 : a - b + K;
 }
 
-double EQ(int a, int b){
+template <typename T>
+double EQ(T a, T b){
     return a == b ? 0.0 : fabs(a - b) + K;
 }
 
-double NEQ(int a, int b){
+template <typename T>
+double NEQ(T a, T b){
     return a == b ? K : 0.0;
 }
 
-BDist isGreater(int a, int b){
+template <typename T>
+BDist isGreater(T a, T b){
     return BDist(a > b, GT(a, b), LTE(a, b));
 }
 
-BDist isEqGreater(int a, int b){
-    int result = (a >= b);
+template <typename T>
+BDist isEqGreater(T a, T b){
     return BDist(a >= b, GTE(a, b), LT(a, b));
 }
 
-BDist isLess(int a, int b){
+template <typename T>
+BDist isLess(T a, T b){
     return BDist(a < b, LT(a, b), GTE(a, b));
 }
 
-BDist isEqLess(int a, int b){
+template <typename T>
+BDist isEqLess(T a, T b){
     return BDist(a <= b, LTE(a, b), GT(a, b));
 }
 
-BDist isEqual(int a, int b){
+template <typename T>
+BDist isEqual(T a, T b){
     return BDist(a == b, EQ(a, b), NEQ(a, b));
 }
 
-BDist isNotEqual(int a, int b){
+template <typename T>
+BDist isNotEqual(T a, T b){
     return BDist(a != b, NEQ(a, b), EQ(a, b));
 }
 
@@ -83,5 +95,4 @@ BDist l_or(BDist lhs, BDist rhs){
 BDist l_not(BDist subExpr){
     return BDist(!subExpr.result, subExpr.falseDistance, subExpr.trueDistance);
 }
-
 
