@@ -2,6 +2,7 @@ import sys
 import argparse
 from subprocess import run, PIPE
 from cffi import FFI
+from os import path
 
 import cavm
 import avm
@@ -22,11 +23,12 @@ def main():
   args = parser.parse_args()
 
   if args.function:
-    dlib = args.target[:-2]+'.so'
+    name, ext = path.splitext(args.target)
+    dlib = name+'.so'
     p = cavm.Parser(args.target)
     cfg = get_dep_map(p.instrument(args.function))
 
-    proc = run(['g++', '-fPIC', '-shared', '-o', dlib, args.target[:-2]+'.inst.cpp', '-std=c++11'], stdout=PIPE, stderr=PIPE)
+    proc = run(['g++', '-fPIC', '-shared', '-o', dlib, name+'.inst.cpp', '-std=c++11'], stdout=PIPE, stderr=PIPE)
     if proc.returncode != 0:
       sys.exit(proc.stderr)
 
