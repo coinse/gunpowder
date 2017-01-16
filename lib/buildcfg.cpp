@@ -367,7 +367,7 @@ public:
         // Parse the file to AST, registering our consumer as the AST consumer.
         ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
             TheCompInst.getASTContext());
-        MyASTVisitor Visitor = TheConsumer.Visitor;
+        MyASTVisitor &Visitor = TheConsumer.Visitor;
         for(auto &it : Visitor.branchids){
             if (Visitor.getDep(it.first).second == NULL){
                 int stmtid = Visitor.getStmtid(it.first);
