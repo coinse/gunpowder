@@ -14,63 +14,63 @@ typedef struct _BDist {
     }
 } BDist;
 
-template <typename T>
-double GT(T a, T b){
+template <typename T1, typename T2>
+double GT(T1 a, T2 b){
     return b - a < 0 ? 0.0 : b - a + K;
 }
 
-template <typename T>
-double GTE(T a, T b){
+template <typename T1, typename T2>
+double GTE(T1 a, T2 b){
     return b - a <= 0 ? 0.0 : b - a + K;
 }
 
-template <typename T>
-double LT(T a, T b){
+template <typename T1, typename T2>
+double LT(T1 a, T2 b){
     return a - b < 0 ? 0.0 : a - b + K;
 }
 
-template <typename T>
-double LTE(T a, T b){
+template <typename T1, typename T2>
+double LTE(T1 a, T2 b){
     return a - b <= 0 ? 0.0 : a - b + K;
 }
 
-template <typename T>
-double EQ(T a, T b){
+template <typename T1, typename T2>
+double EQ(T1 a, T2 b){
     return a == b ? 0.0 : fabs(a - b) + K;
 }
 
-template <typename T>
-double NEQ(T a, T b){
+template <typename T1, typename T2>
+double NEQ(T1 a, T2 b){
     return a == b ? K : 0.0;
 }
 
-template <typename T>
-BDist isGreater(T a, T b){
+template <typename T1, typename T2>
+BDist isGreater(T1 a, T2 b){
     return BDist(a > b, GT(a, b), LTE(a, b));
 }
 
-template <typename T>
-BDist isEqGreater(T a, T b){
+template <typename T1, typename T2>
+BDist isEqGreater(T1 a, T2 b){
     return BDist(a >= b, GTE(a, b), LT(a, b));
 }
 
-template <typename T>
-BDist isLess(T a, T b){
+template <typename T1, typename T2>
+BDist isLess(T1 a, T2 b){
     return BDist(a < b, LT(a, b), GTE(a, b));
 }
 
-template <typename T>
-BDist isEqLess(T a, T b){
+template <typename T1, typename T2>
+BDist isEqLess(T1 a, T2 b){
     return BDist(a <= b, LTE(a, b), GT(a, b));
 }
 
-template <typename T>
-BDist isEqual(T a, T b){
+template <typename T1, typename T2>
+BDist isEqual(T1 a, T2 b){
     return BDist(a == b, EQ(a, b), NEQ(a, b));
 }
 
-template <typename T>
-BDist isNotEqual(T a, T b){
+template <typename T1, typename T2>
+BDist isNotEqual(T1 a, T2 b){
     return BDist(a != b, NEQ(a, b), EQ(a, b));
 }
 
