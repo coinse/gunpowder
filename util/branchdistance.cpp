@@ -84,11 +84,11 @@ int inst(int stmtid, BDist distance){
 
 BDist l_and(BDist lhs, BDist rhs){
     if(lhs.result && rhs.result ) return BDist(true, 0.0, fmin(lhs.falseDistance, rhs.falseDistance));
-    else return BDist(false, fmin(lhs.trueDistance, rhs.trueDistance), 0.0);
+    else return BDist(false, lhs.trueDistance + rhs.trueDistance, 0.0);
 }
 
 BDist l_or(BDist lhs, BDist rhs){
-    if(lhs.result || rhs.result) return BDist(true, 0.0, fmin(lhs.falseDistance, rhs.falseDistance));
+    if(lhs.result || rhs.result) return BDist(true, 0.0, lhs.falseDistance + rhs.falseDistance);
     else return BDist(false, fmin(lhs.trueDistance, rhs.trueDistance), 0.0);
 }
 
