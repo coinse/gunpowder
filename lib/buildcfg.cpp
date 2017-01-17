@@ -324,8 +324,12 @@ private:
 class CAVM {
 public:
     CAVM(StringRef fileName) : fileName(fileName) {
+    }
+
+    ControlDependency instrument(StringRef functionName) {
         // CompilerInstance will hold the instance of the Clang compiler for us,
         // managing the various objects needed to run the compiler.
+        CompilerInstance TheCompInst;
         TheCompInst.createDiagnostics();
 
         LangOptions &lo = TheCompInst.getLangOpts();
@@ -346,6 +350,7 @@ public:
         TheCompInst.createASTContext();
 
         // A Rewriter helps us manage the code rewriting task.
+        Rewriter TheRewriter;
         TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
         // Set the main file handled by the source manager to the input file.
@@ -355,13 +360,9 @@ public:
         TheCompInst.getDiagnosticClient().BeginSourceFile(
                 TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
 
-    }
-
-    ControlDependency instrument(StringRef functionName) {
         // Create an AST consumer instance which is going to get called by
         // ParseAST.
         MyASTConsumer TheConsumer(functionName, TheRewriter);
-        SourceManager &SourceMgr = TheCompInst.getSourceManager();
 
         TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.cpp\"\n");
         // Parse the file to AST, registering our consumer as the AST consumer.
@@ -389,8 +390,41 @@ public:
     }
 
     std::tuple<std::string, std::vector<std::string>> getDeclaration(StringRef functionName) {
-        // TODO: Find a way to avoid resetting ASTContext.
+        // CompilerInstance will hold the instance of the Clang compiler for us,
+        // managing the various objects needed to run the compiler.
+        CompilerInstance TheCompInst;
+        TheCompInst.createDiagnostics();
+
+        LangOptions &lo = TheCompInst.getLangOpts();
+        lo.CPlusPlus = 1;
+
+        // Initialize target info with the default triple for our platform.
+        auto TO = std::make_shared<TargetOptions>();
+        TO->Triple = llvm::sys::getDefaultTargetTriple();
+        TargetInfo *TI =
+                TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+        TheCompInst.setTarget(TI);
+
+        TheCompInst.createFileManager();
+        FileManager &FileMgr = TheCompInst.getFileManager();
+        TheCompInst.createSourceManager(FileMgr);
+        SourceManager &SourceMgr = TheCompInst.getSourceManager();
+        TheCompInst.createPreprocessor(TU_Module);
         TheCompInst.createASTContext();
+
+        // A Rewriter helps us manage the code rewriting task.
+        Rewriter TheRewriter;
+        TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
+
+        // Set the main file handled by the source manager to the input file.
+        const FileEntry *FileIn = FileMgr.getFile(fileName);
+        SourceMgr.setMainFileID(
+                SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
+        TheCompInst.getDiagnosticClient().BeginSourceFile(
+                TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
+
+        // Create an AST consumer instance which is going to get called by
+        // ParseAST.
         DeclarationConsumer TheConsumer(functionName, TheRewriter);
 
         // Parse the file to AST, registering our consumer as the AST consumer.
@@ -401,8 +435,6 @@ public:
     }
 
 private:
-    CompilerInstance TheCompInst;
-    Rewriter TheRewriter;
     StringRef fileName;
 };
 
