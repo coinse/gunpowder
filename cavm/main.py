@@ -6,6 +6,7 @@ from os import path
 
 import cavm
 import avm
+from evaluation import ObjFunc
 
 
 def get_dep_map(dep_list):
@@ -13,6 +14,26 @@ def get_dep_map(dep_list):
     for d in dep_list:
       map[d[0]] = [d[1], d[2]]
     return map
+
+def unroll_input(t, parser, inputs, decls):
+    if t in ['int', 'long', 'float', 'double']:
+      inputs.append(t)
+    elif t[:-1] == '*':
+      raise NotImplementedError
+    elif t[:6] == 'struct':
+      decl, fields = parser.get_decl(t[6:].strip())
+      decls[t] = (decl, fields);
+      for f in fields:
+        unroll_input(f, parser, inputs, decls)
+    else:
+      raise NotImplementedError
+
+def unroll_inputs(params, parser):
+    ret = []
+    decls = {}
+    for t in params:
+      unroll_input(t, parser, ret, decls)
+    return (ret, decls)
 
 def main():
   parser = argparse.ArgumentParser(description='Do AVM search over a given c function')
@@ -32,7 +53,7 @@ def main():
 
     proc = run(['g++', '-fPIC', '-shared', '-o', dlib, name+'.inst.cpp', '-std=c++11'], stdout=PIPE, stderr=PIPE)
     if proc.returncode != 0:
-      sys.exit(proc.stderr)
+      sys.exit(proc.stderr.decode('utf-8'))
 
     decl, params = p.get_decl(args.function)
     ffi = FFI()
@@ -59,9 +80,16 @@ def main():
         branchlist = [targetbranch]
     else:
         branchlist = [branch for node in range(NODENUM) for branch in ([node, False], [node, True])]
-    
 
-    avm.search(args.function, dlib, ffi, cfg, params, branchlist, args.min, args.max, args.termination)
+    unrolled_input, decls = unroll_inputs(params, p)
+    print(params)
+    print(unrolled_input)
+    print(decls)
+    for d in decls:
+      ffi.cdef(decls[d][0])
+
+    obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+    avm.search(obj, unrolled_input, branchlist, args.min, args.max, args.termination)
 
   else:
     # TODO: print out the list of functions in target code
