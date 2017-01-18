@@ -18,7 +18,9 @@ def main():
   parser = argparse.ArgumentParser(description='Do AVM search over a given c function')
   parser.add_argument('target', metavar='<target file>', type=str, help='location of target c file')
   parser.add_argument('-f', '--function', metavar='<target function>', type=str, help='name of function', required=False)
-  parser.add_argument('--range', metavar='<initial vector random range>', type=int, help='random range', default=100, required=False)
+  parser.add_argument('-b', '--branch', metavar='<target branch>', type=str, help='name of branch', required=False)
+  parser.add_argument('--min', metavar='<minimum random value>', type=int, help='random minimum', default=-100, required=False)
+  parser.add_argument('--max', metavar='<maximum random value>', type=int, help='random maximum', default=100, required=False)
   parser.add_argument('--termination', metavar='<search iteration bound>', type=int, help='iteration bound', default=1000, required=False)
   args = parser.parse_args()
 
@@ -50,7 +52,16 @@ def main():
       void resetTrace();
     """)
 
-    avm.search(args.function, dlib, ffi, cfg, params, args.range, args.termination)
+    NODENUM = len(cfg.keys())
+    if args.branch != None:
+        predicate = args.branch[-1] == "T" or args.branch[-1] == "t" 
+        targetbranch = [int(args.branch[:-1]), predicate]
+        branchlist = [targetbranch]
+    else:
+        branchlist = [branch for node in range(NODENUM) for branch in ([node, False], [node, True])]
+    
+
+    avm.search(args.function, dlib, ffi, cfg, params, branchlist, args.min, args.max, args.termination)
 
   else:
     # TODO: print out the list of functions in target code
