@@ -51,9 +51,9 @@ def main():
     p = cavm.Parser(args.target)
     cfg = get_dep_map(p.instrument(args.function))
 
-    proc = run(['g++', '-fPIC', '-shared', '-o', dlib, name+'.inst.cpp', '-std=c++11'], stdout=PIPE, stderr=PIPE)
+    proc = run(['g++', '-fPIC', '-shared', '-o', dlib, name+'.inst.cpp', '-std=c++11'])
     if proc.returncode != 0:
-      sys.exit(proc.stderr.decode('utf-8'))
+      sys.exit(proc.returncode)
 
     decl, params = p.get_decl(args.function)
     ffi = FFI()
