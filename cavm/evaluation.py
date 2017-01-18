@@ -58,6 +58,8 @@ class ObjFunc:
         return (i, idx)
 
     def set_target(self, branch_id):
+        self.counter = 0
+        self.dictionary = {}
         self.target_branch_id = branch_id
         self.dependency_chain = get_dep_chain(self.cfg, branch_id)
 
