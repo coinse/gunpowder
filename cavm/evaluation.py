@@ -48,7 +48,7 @@ class ObjFunc:
           if t in ['int', 'long', 'float', 'double']:
             i.append(vector[idx])
             idx += 1
-          elif t[:-1] == '*':
+          elif t[-1:] == '*':
             raise NotImplementedError
           elif t[:6] == 'struct':
             fields = self.decls[t][1]

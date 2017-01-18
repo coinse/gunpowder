@@ -18,7 +18,7 @@ def get_dep_map(dep_list):
 def unroll_input(t, parser, inputs, decls):
     if t in ['int', 'long', 'float', 'double']:
       inputs.append(t)
-    elif t[:-1] == '*':
+    elif t[-1:] == '*':
       raise NotImplementedError
     elif t[:6] == 'struct':
       decl, fields = parser.get_decl(t[6:].strip())
