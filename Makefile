@@ -130,3 +130,6 @@ python:
 clean:
 	rm -rf $(OBJS) $(TARGET)
 
+.PHONY: test
+test:
+	python3 test/test.py
