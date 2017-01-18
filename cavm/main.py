@@ -82,9 +82,6 @@ def main():
         branchlist = [branch for node in range(NODENUM) for branch in ([node, False], [node, True])]
 
     unrolled_input, decls = unroll_inputs(params, p)
-    print(params)
-    print(unrolled_input)
-    print(decls)
     for d in decls:
       ffi.cdef(decls[d][0])
 
