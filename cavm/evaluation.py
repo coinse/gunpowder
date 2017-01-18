@@ -45,7 +45,7 @@ class ObjFunc:
     def vector_to_input(self, vector, idx, params):
         i = []
         for t in params:
-          if t in ['int', 'long', 'float', 'double']:
+          if t in ['unsigned int', 'int', 'long', 'float', 'double']:
             i.append(vector[idx])
             idx += 1
           elif t[-1:] == '*':

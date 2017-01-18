@@ -16,7 +16,7 @@ def get_dep_map(dep_list):
     return map
 
 def unroll_input(t, parser, inputs, decls):
-    if t in ['int', 'long', 'float', 'double']:
+    if t in ['unsigned int', 'int', 'long', 'float', 'double']:
       inputs.append(t)
     elif t[-1:] == '*':
       raise NotImplementedError
