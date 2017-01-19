@@ -1,6 +1,3 @@
-import os
-import subprocess
-
 def get_trace(dynamic_lib):
   trace = []
   for i in range(dynamic_lib.getTraceSize()):
@@ -21,15 +18,24 @@ def get_dep_chain(dependency_map, targetbranch):
 
 
 def get_divergence_point(trace, dependency_chain):
-    for traceid in range(len(trace)):
-        executed = trace[traceid]
-        for depid in range(len(dependency_chain)):
-            dependency_node = dependency_chain[depid]
+    for depid in range(len(dependency_chain)):
+        dependency_node = dependency_chain[depid]
+        closest = []
+        dist = float("inf")
+        for traceid in range(len(trace)):
+            executed = trace[traceid]
             if(executed[0] == dependency_node[0]):
-                if(executed[1] != dependency_node[1]):
-                    return [traceid, depid, dependency_node[1]]
-
-    return None
+                if(executed[1] == dependency_node[1]):
+                    return None
+                else:
+                    thisdist = executed[2] if dependency_node[1] else executed[3]
+                    if thisdist < dist:
+                        dist = thisdist
+                        closest = [traceid, depid, dependency_node[1]]
+        else:
+            if not closest == []:
+                return closest
+    return [-1, -1, False]
 
 class ObjFunc:
     def __init__(self, target_ftn, dlib, ffi, cfg, p, d):
@@ -79,8 +85,12 @@ class ObjFunc:
                 self.dictionary[inputtuple] = [0, 0]
                 return [0, 0]
 
-            app_lv = divpoint[1]
-            branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
+            if divpoint[0] == -1:
+                app_lv = float("inf")
+                branch_dist = float("inf")
+            else:
+                app_lv = divpoint[1]
+                branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[divpoint[0]][2]
 #            fitness = app_lv + (1 - 1.001 ** (-branch_dist))
             fitness = [app_lv, branch_dist]
             self.dictionary[inputtuple] = fitness
