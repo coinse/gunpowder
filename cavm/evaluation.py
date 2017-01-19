@@ -1,5 +1,6 @@
 import os
 import subprocess
+import warnings
 
 def get_trace(dynamic_lib):
   trace = []
@@ -23,7 +24,7 @@ def get_dep_chain(dependency_map, targetbranch):
 def get_divergence_point(trace, dependency_chain):
     for depid in range(len(dependency_chain)):
         dependency_node = dependency_chain[depid]
-        similarist = []
+        closest = []
         dist = float("inf")
         for traceid in range(len(trace)):
             executed = trace[traceid]
@@ -34,11 +35,11 @@ def get_divergence_point(trace, dependency_chain):
                     thisdist = executed[2] if dependency_node[1] else executed[3]
                     if thisdist < dist:
                         dist = thisdist
-                        similarist = [traceid, depid, dependency_node[1]]
+                        closest = [traceid, depid, dependency_node[1]]
         else:
-            if not similarist == []:
-                return similarist
-    assert(False)
+            if not closest == []:
+                return closest
+    warnings.warn("May result wrong output: trace does not contain any control dependent node of " + str(dependency_chain[0]))
 
 class ObjFunc:
     def __init__(self, target_ftn, dlib, ffi, cfg, p, d):
