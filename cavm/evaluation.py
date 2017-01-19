@@ -1,7 +1,3 @@
-import os
-import subprocess
-import warnings
-
 def get_trace(dynamic_lib):
   trace = []
   for i in range(dynamic_lib.getTraceSize()):
