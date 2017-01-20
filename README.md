@@ -1,6 +1,6 @@
 # Coinse AVM (CAVM)
 
-CAVM is AVM framework which targets C/C++ code.
+CAVM (read `kaboom` |kəˈbuːm|) is a test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM). 
 
 ## Dependencies
 
