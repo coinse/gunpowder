@@ -7,7 +7,7 @@ typedef struct _BDist {
     int result;
     double trueDistance;
     double falseDistance;
-    _BDist(int r, int t, int f){
+    _BDist(int r, double t, double f){
         result = r;
         trueDistance = t;
         falseDistance = f;
