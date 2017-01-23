@@ -22,23 +22,23 @@ If you have built llvm and clang using source code at your machine, you may use 
 ## Run
 
 ```sh
-$ python3 cavm/main.py sample/triangle.c -f get_type
-[0, 0] [1, 9, 8]
-[1, 0] [8, -2, 1]
-[2, 0] [1, 5, 5]
-[3, 0] [3, 8, 6]
-[4, 0] [6, 1, 6]
-[5, 0] [7, 9, 7]
-[6, 0] [1, 2, 2]
-[7, 0] [8, 7, 3]
-[0, 1] [7, 5, 8]
-[1, 1] [3, 3, 0]
-[2, 1] [6, 1, 4]
-[3, 1] [10, 7, 2]
-[4, 1] [4, 7, 4]
-[5, 1] [4, 4, 4]
-[6, 1] fail [5, 4, 3]
-[7, 1] [9, 9, 1]
+python3 cavm/main.py sample/triangle.c -f get_type --min 0
+[0, False] [6, 30, 4]
+[0, True] [97, 85, 43]
+[1, False] [18, 70, 81]
+[1, True] [100, 100, 99]
+[2, False] [68, 68, 28]
+[2, True] [91, 79, 6]
+[3, False] [98, 25, 93]
+[3, True] [100, 35, 59]
+[4, False] [37, 37, 11]
+[4, True] [35, 35, 61]
+[5, False] [76, 46, 46]
+[5, True] [20, 20, 20]
+[6, False] [12, 7, 18]
+[6, True] FAIL [88, 83, 13]
+[7, False] [93, 99, 88]
+[7, True] [82, 37, 82]
 ```
 You can start with examples in `/sample`. CAVM takes path of target code and name of target function as command line arguments. For full usage instructions, please see the output of:
 ```sh
