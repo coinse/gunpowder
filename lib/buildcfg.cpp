@@ -209,15 +209,32 @@ public:
         UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
         UnaryOperator::Opcode Opc = o->getOpcode();
         switch(Opc){
+					case UO_PreInc:
+						S << "++";
+						break;
+					case UO_PreDec:
+						S << "--";
+						break;
+					case UO_Minus:
+						S << "-";
+						break;
+					case UO_PostInc:
+						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+						S << "++";
+						return;
+					case UO_PostDec:
+						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+						S << "--";
+						return;
           case UO_LNot:
             S << "l_not(";
-            break;
+						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+						S << ")";
+						return;
           default:
             return;
         }
         convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-        S << ")";
-
       }
       else if(isa<ParenExpr>(Cond)){
         ParenExpr *o = dyn_cast<ParenExpr>(Cond);
@@ -437,4 +454,3 @@ public:
 private:
     StringRef fileName;
 };
-
