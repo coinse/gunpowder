@@ -43,6 +43,7 @@ def main():
   parser.add_argument('--min', metavar='<minimum random value>', type=int, help='random minimum', default=-100, required=False)
   parser.add_argument('--max', metavar='<maximum random value>', type=int, help='random maximum', default=100, required=False)
   parser.add_argument('--termination', metavar='<search iteration bound>', type=int, help='iteration bound', default=1000, required=False)
+  parser.add_argument('--prec', metavar='<precision>', type=int, help='precision of floating numbers', default=1, required=False)
   args = parser.parse_args()
 
   if args.function:
@@ -86,7 +87,7 @@ def main():
       ffi.cdef(decls[d][0])
 
     obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
-    avm.search(obj, unrolled_input, branchlist, args.min, args.max, args.termination)
+    avm.search(obj, unrolled_input, branchlist, args.min, args.max, args.termination, args.prec)
 
   else:
     # TODO: print out the list of functions in target code
