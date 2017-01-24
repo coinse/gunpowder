@@ -376,10 +376,10 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
 		// ParseAST.
 		MyASTConsumer TheConsumer(functionName, TheRewriter);
 
+		TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.cpp\"\n");
 		// Parse the file to AST, registering our consumer as the AST consumer.
 		ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
 				TheCompInst.getASTContext());
-		TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.cpp\"\n");
 		MyASTVisitor &Visitor = TheConsumer.Visitor;
 		for(auto &it : Visitor.branchids){
 				if (Visitor.getDep(it.first).second == NULL){
