@@ -1,4 +1,4 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension, find_packages
 import subprocess
 import platform
 import os
@@ -39,11 +39,6 @@ proc = subprocess.Popen([LLVM_BIN_PATH+'/llvm-config', '--ldflags', '--libs', '-
 LLVM_LDFLAGS = proc.communicate()[0].decode().split()
 parse_config(libs, lib_dirs, extra, include_dirs, LLVM_LDFLAGS)
 
-print(libs)
-print(lib_dirs)
-print(extra)
-print(include_dirs)
-
 LLVM_LDFLAGS_NOLIBS = LLVM_BIN_PATH+'/llvm-config --ldflags'
 PLUGIN_LDFLAGS = '-shared -Wl,-undefined,dynamic_lookup'
 
@@ -76,7 +71,7 @@ if platform.system() != 'Darwin':
   CLANG_LIBS = ['-Wl,--start-group']+CLANG_LIBS+['-Wl,--end-group']
 
 module = Extension(
-  'cavm',
+  'cavm.clang',
   sources=['lib/python_binding.cpp'],
   depends=['lib/buildcfg.cpp', 'lib/consumer.cpp'],
   include_dirs=CLANG_INCLUDES+include_dirs,
@@ -87,6 +82,22 @@ module = Extension(
 
 setup(
   name = 'cavm',
-  version = '1.0',
-  ext_modules = [module]
+  version = '0.1.0',
+  url = '', #TODO
+  author = '', #TODO
+  author_email = '', #TODO
+  description = 'A test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM)',
+  license = 'MIT',
+  packages = find_packages(),
+  entry_points = {
+    'console_scripts': [
+      'cavm = cavm.main:main',
+    ],
+  },
+  install_requires = [
+    'cffi',
+  ],
+  ext_modules = [module],
+  classifiers = [
+  ] #TODO
 )

@@ -125,7 +125,7 @@ $(TARGET): $(SRCS) $(DEPS)
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
 
 python:
-	CC=$(CXX) BINARY_DIR_PATH=$(BINARY_DIR_PATH) python3 setup.py install
+	CC=$(CXX) BINARY_DIR_PATH=$(BINARY_DIR_PATH) python3 setup.py build_ext -b .
 
 .PHONY: clean
 clean:

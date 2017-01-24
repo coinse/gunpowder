@@ -78,7 +78,7 @@ static PyType_Slot CAVMTypeSlots[] = {
 };
 
 static PyType_Spec CAVMTypeSpec = {
-  "cavm.Parser",
+  "cavm.clang.Parser",
   sizeof(Parser),
   0,
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_BASETYPE,
@@ -87,7 +87,7 @@ static PyType_Spec CAVMTypeSpec = {
 
 static struct PyModuleDef module = {
   PyModuleDef_HEAD_INIT,
-  "cavm",
+  "cavm.clang",
   NULL,
   -1,
   NULL
@@ -96,7 +96,7 @@ static struct PyModuleDef module = {
 static PyTypeObject *ParserType = NULL;
 
 PyMODINIT_FUNC
-PyInit_cavm(void)
+PyInit_clang(void)
 {
   ParserType = (PyTypeObject *)PyType_FromSpec(&CAVMTypeSpec);
   if (PyType_Ready(ParserType) < 0)
