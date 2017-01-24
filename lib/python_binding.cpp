@@ -5,14 +5,12 @@
 struct Parser
 {
   PyObject_HEAD
-  CAVM *cavm;
+	std::string filename;
 };
 
 static void
 Parser_dealloc(Parser *self)
 {
-  if (self->cavm)
-    delete self->cavm;
 }
 
 static int
@@ -22,7 +20,7 @@ Parser_init(Parser *self, PyObject *args, PyObject *kwds)
 
   if (!PyArg_ParseTuple(args, "s", &filename))
     return -1;
-  self->cavm = new CAVM(filename);
+	self->filename = filename;
   return 0;
 }
 
@@ -33,7 +31,7 @@ Parser_instrument(Parser *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "s", &functionName))
     return NULL;
-  ControlDependency cfg = self->cavm->instrument(functionName);
+  ControlDependency cfg = instrument(self->filename, functionName);
   PyObject* list = PyList_New(0);
   for (const auto &i : cfg) {
     PyObject *item = PyTuple_New(3);
@@ -53,7 +51,7 @@ Parser_getDecl(Parser *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "s", &functionName))
     return NULL;
-  std::tuple<std::string, std::vector<std::string>> ret = self->cavm->getDeclaration(functionName);
+  std::tuple<std::string, std::vector<std::string>> ret = getDeclaration(self->filename, functionName);
 
   PyObject *tp = PyTuple_New(2);
   PyTuple_SetItem(tp, 0, PyUnicode_FromString(std::get<0>(ret).c_str()));
