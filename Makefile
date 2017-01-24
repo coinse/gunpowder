@@ -112,15 +112,16 @@ MKDIR = mkdir
 SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
+DEPS = $(SRCDIR)/consumer.cpp $(SRCDIR)/buildcfg.cpp
 OBJS = $(SRCDIR)/main.o
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET): $(SRCS)
+$(TARGET): $(SRCS) $(DEPS)
 	@`[ -d $(BUILDDIR) ] || $(MKDIR) $(BUILDDIR)`
-	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $^ \
+	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< \
 		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
 
 python:
@@ -132,4 +133,4 @@ clean:
 
 .PHONY: test
 test:
-	python3 test/test.py
+	python3 test/test.py -v
