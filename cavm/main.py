@@ -1,6 +1,5 @@
 # Written in 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
 # Written in 2017 by Byeong Hyeon You <byou@kaist.ac.kr>
-
 """CAVM
   $ cavm file [options]
 """
@@ -25,15 +24,15 @@ def get_dep_map(dep_list):
     return dep_map
 
 
-def unroll_input(param_type, parser, inputs, decls):
+def unroll_input(c_type, parser, inputs, decls):
     """flatten the input"""
-    if param_type in ['unsigned int', 'int', 'long', 'float', 'double']:
-        inputs.append(param_type)
-    elif param_type[-1:] == '*':
+    if c_type in ['unsigned int', 'int', 'long', 'float', 'double']:
+        inputs.append(c_type)
+    elif c_type[-1:] == '*':
         raise NotImplementedError
-    elif param_type[:6] == 'struct':
-        decl, fields = parser.get_decl(param_type[6:].strip())
-        decls[param_type] = (decl, fields)
+    elif c_type[:6] == 'struct':
+        decl, fields = parser.get_decl(c_type[6:].strip())
+        decls[c_type] = (decl, fields)
         for field in fields:
             unroll_input(field, parser, inputs, decls)
     else:

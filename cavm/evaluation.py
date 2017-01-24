@@ -1,16 +1,17 @@
 # Written in 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
 # Written in 2017 by Byeong Hyeon You <byou@kaist.ac.kr>
-
 """evaluation
   compute objective value
 """
+
 
 def get_trace(dynamic_lib):
     """get trace from dynamic library"""
     trace_list = []
     for i in range(dynamic_lib.getTraceSize()):
         trace = dynamic_lib.getTrace(i)
-        trace_list.append((trace.stmtid, trace.result, trace.trueDistance, trace.falseDistance))
+        trace_list.append((trace.stmtid, trace.result, trace.trueDistance,
+                           trace.falseDistance))
     dynamic_lib.resetTrace()
     return trace_list
 
@@ -28,11 +29,11 @@ def get_dep_chain(dependency_map, targetbranch):
 
 def get_divergence_point(trace, dependency_chain):
     """get divergence point between trace and dependency chain"""
-    for depid in range(len(dependency_chain)):
+    for depid, _ in enumerate(dependency_chain):
         dependency_node = dependency_chain[depid]
         closest = []
         dist = float("inf")
-        for traceid in range(len(trace)):
+        for traceid, _ in enumerate(trace):
             executed = trace[traceid]
             if executed[0] == dependency_node[0]:
                 if executed[1] == dependency_node[1]:
@@ -43,14 +44,14 @@ def get_divergence_point(trace, dependency_chain):
                     if thisdist < dist:
                         dist = thisdist
                         closest = [traceid, depid, dependency_node[1]]
-        else:
-            if not closest == []:
-                return closest
+        if not closest == []:
+            return closest
     return [-1, -1, False]
 
 
 class ObjFunc:
     """Objective Function"""
+
     def __init__(self, target_ftn, dlib, ffi, cfg, p, d):
         self.target_function = target_ftn
         self.dlib = dlib
@@ -60,6 +61,8 @@ class ObjFunc:
         self.cfg = cfg
         self.counter = 0
         self.dictionary = {}
+        self.target_branch_id = None
+        self.dependency_chain = None
 
     def vector_to_input(self, vector, idx, params):
         """convert python vector list to C input format"""
