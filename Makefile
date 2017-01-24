@@ -133,4 +133,4 @@ clean:
 
 .PHONY: test
 test:
-	python3 test/test.py
+	python3 test/test.py -v
