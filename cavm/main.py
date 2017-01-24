@@ -1,8 +1,15 @@
+# Written in 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
+# Written in 2017 by Byeong Hyeon You <byou@kaist.ac.kr>
+
+"""CAVM
+  $ cavm file [options]
+"""
+
 import sys
 import argparse
-from subprocess import run, PIPE
-from cffi import FFI
+from subprocess import run
 from os import path
+from cffi import FFI
 
 import cavm
 import avm
@@ -10,35 +17,42 @@ from evaluation import ObjFunc
 
 
 def get_dep_map(dep_list):
-    map = {}
-    for d in dep_list:
-        map[d[0]] = [d[1], d[2]]
-    return map
+    """get dependecy map from list"""
+    dep_map = {}
+    for i in dep_list:
+        # i is (target_branch_id, parent_bid, condition)
+        dep_map[i[0]] = [i[1], i[2]]
+    return dep_map
 
 
-def unroll_input(t, parser, inputs, decls):
-    if t in ['unsigned int', 'int', 'long', 'float', 'double']:
-        inputs.append(t)
-    elif t[-1:] == '*':
+def unroll_input(param_type, parser, inputs, decls):
+    """flatten the input"""
+    if param_type in ['unsigned int', 'int', 'long', 'float', 'double']:
+        inputs.append(param_type)
+    elif param_type[-1:] == '*':
         raise NotImplementedError
-    elif t[:6] == 'struct':
-        decl, fields = parser.get_decl(t[6:].strip())
-        decls[t] = (decl, fields)
-        for f in fields:
-            unroll_input(f, parser, inputs, decls)
+    elif param_type[:6] == 'struct':
+        decl, fields = parser.get_decl(param_type[6:].strip())
+        decls[param_type] = (decl, fields)
+        for field in fields:
+            unroll_input(field, parser, inputs, decls)
     else:
         raise NotImplementedError
 
 
 def unroll_inputs(params, parser):
+    """flatten the list of inputs"""
     ret = []
     decls = {}
-    for t in params:
-        unroll_input(t, parser, ret, decls)
+    for parameter in params:
+        unroll_input(parameter, parser, ret, decls)
     return (ret, decls)
 
 
 def main():
+    """
+    A simple method that runs a CAVM.
+    """
     parser = argparse.ArgumentParser(
         description='Do AVM search over a given c function')
     parser.add_argument(
@@ -91,10 +105,10 @@ def main():
     args = parser.parse_args()
 
     if args.function:
-        name, ext = path.splitext(args.target)
+        name, _ = path.splitext(args.target)
         dlib = name + '.so'
-        p = cavm.Parser(args.target)
-        cfg = get_dep_map(p.instrument(args.function))
+        parser = cavm.Parser(args.target)
+        cfg = get_dep_map(parser.instrument(args.function))
 
         proc = run([
             'g++', '-fPIC', '-shared', '-o', dlib, name + '.inst.cpp',
@@ -103,7 +117,7 @@ def main():
         if proc.returncode != 0:
             sys.exit(proc.returncode)
 
-        decl, params = p.get_decl(args.function)
+        decl, params = parser.get_decl(args.function)
         ffi = FFI()
         ffi.cdef(decl)
         ffi.cdef("""
@@ -121,7 +135,7 @@ def main():
       void resetTrace();
     """)
 
-        NODENUM = len(cfg.keys())
+        node_num = len(cfg.keys())
         if args.branch != None:
             predicate = args.branch[-1] == "T" or args.branch[-1] == "t"
             targetbranch = [int(args.branch[:-1]), predicate]
@@ -129,13 +143,13 @@ def main():
         else:
             branchlist = [
                 branch
-                for node in range(NODENUM)
+                for node in range(node_num)
                 for branch in ([node, False], [node, True])
             ]
 
-        unrolled_input, decls = unroll_inputs(params, p)
-        for d in decls:
-            ffi.cdef(decls[d][0])
+        unrolled_input, decls = unroll_inputs(params, parser)
+        for decl in decls:
+            ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
         avm.search(obj, unrolled_input, branchlist, args.min, args.max,
