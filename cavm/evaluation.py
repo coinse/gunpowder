@@ -67,12 +67,19 @@ class ObjFunc:
     def vector_to_input(self, vector, idx, params):
         """convert python vector list to C input format"""
         i = []
+        scalar_types = ['unsigned int', 'int', 'long', 'float', 'double']
         for c_type in params:
-            if c_type in ['unsigned int', 'int', 'long', 'float', 'double']:
+            if c_type in scalar_types:
                 i.append(vector[idx])
                 idx += 1
             elif c_type[-1:] == '*':
-                raise NotImplementedError
+                underlying_type = c_type[:-1]
+                if underlying_type in scalar_types:
+                  i.append(self.ffi.new(c_type, vector[idx]))
+                elif underlying_type[:6] == 'struct':
+                  fields = self.decls[underlying_type][1]
+                  val, idx = self.vector_to_input(vector, idx, fields)
+                  i.append(self.ffi.new(c_type, val))
             elif c_type[:6] == 'struct':
                 fields = self.decls[c_type][1]
                 val, idx = self.vector_to_input(vector, idx, fields)
