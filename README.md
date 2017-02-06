@@ -70,3 +70,9 @@ Also, you can use standalone version.
 $ make
 $ ./bin/buildcfg <filename> <function name>
 ```
+
+## Distribution
+https://packaging.python.org/distributing/#wheels  
+```sh
+$ python setup.py bdist_wheel
+```

@@ -83,9 +83,8 @@ module = Extension(
 setup(
   name = 'cavm',
   version = '0.1.0',
-  url = '', #TODO
-  author = '', #TODO
-  author_email = '', #TODO
+  url = 'http://coinse.kaist.ac.kr',
+  author = 'COINSE Lab.',
   description = 'A test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM)',
   license = 'MIT',
   packages = find_packages(),
@@ -99,5 +98,11 @@ setup(
   ],
   ext_modules = [module],
   classifiers = [
-  ] #TODO
+    'Development Status :: 3 - Alpha',
+    'Environment :: Console',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: C++',
+    'Topic :: Software Development :: Testing',
+  ]
 )
