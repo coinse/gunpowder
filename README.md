@@ -22,7 +22,7 @@ If you have built llvm and clang using source code at your machine, you may use 
 ## Run
 
 ```sh
-python3 cavm/main.py sample/triangle.c -f get_type --min 0
+python3 -m cavm.main sample/triangle.c -f get_type --min 0
 [0, False] [6, 30, 4]
 [0, True] [97, 85, 43]
 [1, False] [18, 70, 81]
@@ -42,7 +42,7 @@ python3 cavm/main.py sample/triangle.c -f get_type --min 0
 ```
 You can start with examples in `/sample`. CAVM takes path of target code and name of target function as command line arguments. For full usage instructions, please see the output of:
 ```sh
-$ python3 cavm/main.py --help
+$ python3 -m cavm.main --help
 ```
 
 
