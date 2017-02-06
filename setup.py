@@ -2,6 +2,7 @@ from setuptools import setup, Extension, find_packages
 import subprocess
 import platform
 import os
+from os import path
 
 def parse_config (libs, lib_dirs, extra, include_dirs, flags):
   for param in flags:
@@ -80,12 +81,17 @@ module = Extension(
   extra_link_args=CLANG_LIBS+libs
 )
 
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+  long_description = f.read()
+
 setup(
   name = 'cavm',
   version = '0.1.0',
   url = 'http://coinse.kaist.ac.kr',
   author = 'COINSE Lab.',
   description = 'A test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM)',
+  long_description = long_description,
   license = 'MIT',
   packages = find_packages(),
   entry_points = {
