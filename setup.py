@@ -24,6 +24,7 @@ include_dirs = []
 if not os.environ.get('BINARY_DIR_PATH'):
   raise SystemExit('BINARY_DIR_PATH is unset.')
 BINARY_DIR_PATH = os.environ['BINARY_DIR_PATH']
+os.environ['CC'] = BINARY_DIR_PATH + '/bin/clang++'
 
 LLVM_SRC_PATH = BINARY_DIR_PATH
 LLVM_BUILD_PATH = BINARY_DIR_PATH + "/bin"
