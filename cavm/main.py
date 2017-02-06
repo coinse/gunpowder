@@ -10,9 +10,9 @@ from subprocess import run
 from os import path
 from cffi import FFI
 
-import cavm
-import avm
-from evaluation import ObjFunc
+from cavm.clang import Parser
+import cavm.avm
+from cavm.evaluation import ObjFunc
 
 
 def get_dep_map(dep_list):
@@ -106,7 +106,7 @@ def main():
     if args.function:
         name, _ = path.splitext(args.target)
         dlib = name + '.so'
-        parser = cavm.Parser(args.target)
+        parser = Parser(args.target)
         cfg = get_dep_map(parser.instrument(args.function))
 
         proc = run([
@@ -151,7 +151,7 @@ def main():
             ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
-        avm.search(obj, unrolled_input, branchlist, args.min, args.max,
+        cavm.avm.search(obj, unrolled_input, branchlist, args.min, args.max,
                    args.termination, args.prec)
 
     else:
