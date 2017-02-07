@@ -29,7 +29,7 @@ def unroll_input(c_type, parser, inputs, decls):
     if c_type in ['unsigned int', 'int', 'long', 'float', 'double']:
         inputs.append(c_type)
     elif c_type[-1:] == '*':
-        unroll_input(c_type[:-1], parser, inputs, decls)
+        unroll_input(c_type[:-1].strip(), parser, inputs, decls)
     elif c_type[:6] == 'struct':
         decl, fields = parser.get_decl(c_type[6:].strip())
         decls[c_type] = (decl, fields)
