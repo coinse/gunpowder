@@ -80,8 +80,8 @@ class FunctionConsumer : public clang::ASTConsumer {
     for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
          ++b) {
       if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
-            if (f->hasBody()) {
-              decls.push_back(f->getNameAsString());
+        if (f->hasBody()) {
+          decls.push_back(f->getNameAsString());
         }
       }
     }

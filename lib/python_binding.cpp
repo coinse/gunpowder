@@ -59,8 +59,7 @@ static PyObject *Parser_getFunctions(Parser *self) {
   std::vector<std::string> ret = getFunctions(self->filename);
 
   PyObject *f = PyList_New(0);
-  for (const auto &i : ret)
-    PyList_Append(f, PyUnicode_FromString(i.c_str()));
+  for (const auto &i : ret) PyList_Append(f, PyUnicode_FromString(i.c_str()));
 
   return f;
 }
