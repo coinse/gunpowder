@@ -151,8 +151,9 @@ def main():
             ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
-        cavm.avm.search(obj, unrolled_input, branchlist, args.min, args.max,
-                   args.termination, args.prec)
+        print(
+            cavm.avm.search(obj, unrolled_input, branchlist, args.min,
+                            args.max, args.termination, args.prec))
 
     else:
         # TODO: print out the list of functions in target code
