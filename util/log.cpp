@@ -1,6 +1,7 @@
+// Copyright 2017 COINSE Lab.
 #include <cstdio>
-#include <vector>
 #include <tuple>
+#include <vector>
 
 typedef struct {
   int stmtid;
@@ -13,20 +14,15 @@ typedef std::vector<traceItem> Trace;
 
 Trace CAVM_TRACE;
 
-int tracelog(int stmtid, int result, double trueDistance, double falseDistance) {
-    CAVM_TRACE.push_back(traceItem{stmtid, result, trueDistance, falseDistance});
+int tracelog(int stmtid, int result, double trueDistance,
+             double falseDistance) {
+  CAVM_TRACE.push_back(traceItem{stmtid, result, trueDistance, falseDistance});
 }
 
 extern "C" {
-traceItem getTrace(int idx) {
-    return CAVM_TRACE[idx];
-}
+traceItem getTrace(int idx) { return CAVM_TRACE[idx]; }
 
-int getTraceSize() {
-    return CAVM_TRACE.size();
-}
+int getTraceSize() { return CAVM_TRACE.size(); }
 
-void resetTrace() {
-    CAVM_TRACE.clear();
-}
+void resetTrace() { CAVM_TRACE.clear(); }
 }
