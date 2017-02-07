@@ -1,20 +1,24 @@
+// Copyright 2017 COINSE Lab.
 #include <cstdio>
 #include <cstdlib>
-#include <memory>
-#include <string>
-#include <sstream>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
-#include "clang/Analysis/CFG.h"
 #include "clang/AST/ASTConsumer.h"
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/OperationKinds.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Analysis/CFG.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
-#include "clang/Basic/TargetOptions.h"
 #include "clang/Basic/TargetInfo.h"
+#include "clang/Basic/TargetOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Parse/ParseAST.h"
@@ -26,422 +30,417 @@
 
 #include "./consumer.cpp"
 
-using namespace clang;
-
 typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
 
-class MyASTVisitor : public RecursiveASTVisitor<MyASTVisitor> {
-public:
-    MyASTVisitor(Rewriter &R) : TheRewriter(R) {id = 0;}
+class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
+ public:
+  explicit MyASTVisitor(clang::Rewriter &R) : TheRewriter(R) { id = 0; }
 
-    typedef std::vector<std::pair<Stmt*, int>> branchidsty;
-    branchidsty branchids;
+  typedef std::vector<std::pair<clang::Stmt *, int>> branchidsty;
+  branchidsty branchids;
 
-    ControlDependency getControlDep() {
-        return cfg;
+  ControlDependency getControlDep() { return cfg; }
+
+  struct isidExist {
+    explicit isidExist(clang::Stmt *s) : _s(s) {}
+    bool operator()(std::pair<clang::Stmt *, int> const &p) {
+      return (p.first == _s);
+    }
+    clang::Stmt *_s;
+  };
+
+  int getStmtid(clang::Stmt *s) {
+    branchidsty::iterator it =
+        std::find_if(branchids.begin(), branchids.end(), isidExist(s));
+    int stmtid = it->second;
+    return stmtid;
+  }
+
+  int assignStmtid(clang::Stmt *s) {
+    int stmtid;
+    branchidsty::iterator it =
+        std::find_if(branchids.begin(), branchids.end(), isidExist(s));
+    if (it == branchids.end()) {
+      stmtid = id;
+      branchids.push_back(std::pair<clang::Stmt *, int>(s, id++));
+    } else {  // if already assigned return assigned id
+      stmtid = it->second;
+    }
+    return stmtid;
+  }
+
+  typedef std::vector<std::pair<clang::Stmt *, clang::Stmt *>> branchdepty;
+  branchdepty branchdeps;
+
+  struct isDepExist {
+    explicit isDepExist(clang::Stmt *s) : _s(s) {}
+    bool operator()(std::pair<clang::Stmt *, clang::Stmt *> const &p) {
+      return (p.first == _s);
+    }
+    clang::Stmt *_s;
+  };
+
+  std::pair<clang::Stmt *, clang::Stmt *> getDep(clang::Stmt *s) {
+    branchdepty::iterator it =
+        std::find_if(branchdeps.begin(), branchdeps.end(), isDepExist(s));
+    if (it == branchdeps.end()) {
+      return std::pair<clang::Stmt *, clang::Stmt *>(s, NULL);
     }
 
-    struct isidExist {
-        isidExist(Stmt *s): _s(s) {}
-        bool operator() (std::pair<Stmt*, int> const& p) {
-            return (p.first == _s);
-        }
-        Stmt* _s;
-    };
+    return *it;
+  }
 
-    int getStmtid(Stmt *s){
-        branchidsty::iterator it = std::find_if(branchids.begin(), branchids.end(), isidExist(s));
-        int stmtid = it->second;
-        return stmtid;
-    }
+  void insertdep(clang::SourceLocation Loc, int stmtid, int parentid,
+                 bool cond) {
+    std::stringstream ss;
+    ss << "/*";
+    ss << parentid;
+    ss << "->";
+    ss << stmtid;
+    ss << "*/\n";
+    TheRewriter.InsertText(Loc, ss.str(), true, true);
+    cfg.push_back(std::tuple<int, int, bool>(stmtid, parentid, cond));
+  }
 
-    int assignStmtid(Stmt *s){
-        int stmtid;
-        branchidsty::iterator it = std::find_if(branchids.begin(), branchids.end(), isidExist(s));
-        if (it == branchids.end()) {
-            stmtid = id;
-            branchids.push_back(std::pair<Stmt*, int>(s, id++));
-        }
-        else {//if already assigned return assigned id
-            stmtid = it->second;
-        }
-        return stmtid;
-    }
+  int assignDep(clang::Stmt *s, clang::Stmt *parent, bool cond) {
+    int stmtid = 0;
+    int parentid = 0;
 
+    if (clang::isa<clang::DoStmt>(s)) {
+      stmtid = assignStmtid(s);
+      parentid = getStmtid(parent);
+      branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
 
-    typedef std::vector<std::pair<Stmt*, Stmt*>> branchdepty;
-    branchdepty branchdeps;
+      insertdep(s->getLocStart(), stmtid, parentid, cond);
+    } else if (clang::isa<clang::ForStmt>(s)) {
+      stmtid = assignStmtid(s);
+      parentid = getStmtid(parent);
+      branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
 
-    struct isDepExist {
-        isDepExist(Stmt *s): _s(s) {}
-        bool operator() (std::pair<Stmt*, Stmt*> const& p) {
-            return (p.first == _s);
-        }
-        Stmt* _s;
-    };
+      insertdep(s->getLocStart(), stmtid, parentid, cond);
+    } else if (clang::isa<clang::IfStmt>(s)) {
+      stmtid = assignStmtid(s);
+      parentid = getStmtid(parent);
+      branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
 
-    std::pair<Stmt*, Stmt*> getDep(Stmt *s) {
-        branchdepty::iterator it = std::find_if(branchdeps.begin(), branchdeps.end(), isDepExist(s));
-        if (it == branchdeps.end()) {
-            return std::pair<Stmt*, Stmt*>(s, NULL);
-        }
+      insertdep(s->getLocStart(), stmtid, parentid, cond);
+    } else if (clang::isa<clang::WhileStmt>(s)) {
+      stmtid = assignStmtid(s);
+      parentid = getStmtid(parent);
+      branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
 
-        return *it;
-    }
-
-    void insertdep(SourceLocation Loc, int stmtid, int parentid, bool cond) {
-        std::stringstream ss;
-        ss << "/*";
-        ss << parentid;
-        ss << "->";
-        ss << stmtid;
-        ss << "*/\n";
-        TheRewriter.InsertText(Loc, ss.str(), true, true);
-        cfg.push_back(std::tuple<int, int, bool>(stmtid, parentid, cond));
-    }
-
-    int assignDep (Stmt *s, Stmt *parent, bool cond) {
-        int stmtid = 0;
-        int parentid = 0;
-
-        if(isa<DoStmt>(s)) {
-            stmtid = assignStmtid(s);
-            parentid = getStmtid(parent);
-            branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
-
-            insertdep(s->getLocStart(), stmtid, parentid, cond);
-        }
-        else if(isa<ForStmt>(s)) {
-            stmtid = assignStmtid(s);
-            parentid = getStmtid(parent);
-            branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
-
-            insertdep(s->getLocStart(), stmtid, parentid, cond);
-        }
-        else if(isa<IfStmt>(s)) {
-            stmtid = assignStmtid(s);
-            parentid = getStmtid(parent);
-            branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
-
-            insertdep(s->getLocStart(), stmtid, parentid, cond);
-        }
-        else if(isa<WhileStmt>(s)) {
-            stmtid = assignStmtid(s);
-            parentid = getStmtid(parent);
-            branchdeps.push_back(std::pair<Stmt*, Stmt*>(s, parent));
-
-            insertdep(s->getLocStart(), stmtid, parentid, cond);
-        }
-        else if(isa<CompoundStmt>(s)) {
-            CompoundStmt *C = cast<CompoundStmt>(s);
-            for(auto *I: C->body()){
-                 assignDep(I, parent, cond);
-            }
-        }
-
-        return stmtid;
-    }
-
-    void insertbranchlog(Expr *Cond, int stmtid) {
-      std::string str;
-      llvm::raw_string_ostream S(str);
-      S << "inst(" << stmtid << ", ";
-      convertCompositePredicate(Cond, S, TheRewriter);
-      S << ")" ;
-      TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
-    }
-
-    void convertCompositePredicate(Expr *Cond, llvm::raw_string_ostream& S, Rewriter TheRewriter) {
-      if (isa<BinaryOperator>(Cond)) {
-        BinaryOperator *o = dyn_cast<BinaryOperator>(Cond);
-        BinaryOperator::Opcode Opc = o->getOpcode();
-        switch (Opc) {
-          case BO_GT:
-            S << "isGreater(";
-            break;
-          case BO_GE:
-            S << "isEqGreater(";
-            break;
-          case BO_LT:
-            S << "isLess(";
-            break;
-          case BO_LE:
-            S << "isEqLess(";
-            break;
-          case BO_EQ:
-            S << "isEqual(";
-            break;
-          case BO_NE:
-            S << "isNotEqual(";
-            break;
-          case BO_LAnd:
-            S << "l_and(";
-            break;
-          case BO_LOr:
-            S << "l_or(";
-            break;
-          default:
-            Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-            return;
-        }
-        convertCompositePredicate(o->getLHS(), S, TheRewriter);
-        S << ", ";
-        convertCompositePredicate(o->getRHS(), S, TheRewriter);
-        S << ")";
-      }
-      else if(isa<ImplicitCastExpr>(Cond)) {
-        ImplicitCastExpr *c = dyn_cast<ImplicitCastExpr>(Cond);
-        switch (c->getCastKind()) {
-          case CK_MemberPointerToBoolean:
-          case CK_PointerToBoolean:
-          case CK_IntegralToBoolean:
-          case CK_FloatingToBoolean:
-          case CK_FloatingComplexToBoolean:
-            S << "isNotEqual(";
-            Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
-            S << ", 0)";
-            break;
-          default:
-            convertCompositePredicate(c->getSubExpr(), S, TheRewriter);
-        }
-      }
-      else if(isa<UnaryOperator>(Cond)) {
-        UnaryOperator *o = dyn_cast<UnaryOperator>(Cond);
-        UnaryOperator::Opcode Opc = o->getOpcode();
-        switch(Opc){
-					case UO_PreInc:
-						S << "++";
-						break;
-					case UO_PreDec:
-						S << "--";
-						break;
-					case UO_Minus:
-						S << "-";
-						break;
-					case UO_PostInc:
-						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-						S << "++";
-						return;
-					case UO_PostDec:
-						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-						S << "--";
-						return;
-          case UO_LNot:
-            S << "l_not(";
-						convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-						S << ")";
-						return;
-          default:
-            return;
-        }
-        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-      }
-      else if(isa<ParenExpr>(Cond)){
-        ParenExpr *o = dyn_cast<ParenExpr>(Cond);
-        convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
-      }
-      else{
-        Cond->printPretty(S, nullptr, PrintingPolicy(TheRewriter.getLangOpts()));
+      insertdep(s->getLocStart(), stmtid, parentid, cond);
+    } else if (clang::isa<clang::CompoundStmt>(s)) {
+      clang::CompoundStmt *C = clang::cast<clang::CompoundStmt>(s);
+      for (auto *I : C->body()) {
+        assignDep(I, parent, cond);
       }
     }
 
-    bool VisitStmt(Stmt *s) {
-        if(isa<DoStmt>(s)) {
-            DoStmt *F = cast<DoStmt>(s);
-            int stmtid = assignStmtid(s);
+    return stmtid;
+  }
 
-            Expr *Cond = F->getCond();
-            Stmt *Body = F->getBody();
+  void insertbranchlog(clang::Expr *Cond, int stmtid) {
+    std::string str;
+    llvm::raw_string_ostream S(str);
+    S << "inst(" << stmtid << ", ";
+    convertCompositePredicate(Cond, S, TheRewriter);
+    S << ")";
+    TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+  }
 
-            assignDep(Body, s, true);
+  void convertCompositePredicate(clang::Expr *Cond, llvm::raw_string_ostream &S,
+                                 clang::Rewriter TheRewriter) {
+    if (clang::isa<clang::BinaryOperator>(Cond)) {
+      clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(Cond);
+      clang::BinaryOperator::Opcode Opc = o->getOpcode();
+      switch (Opc) {
+        case clang::BO_GT:
+          S << "isGreater(";
+          break;
+        case clang::BO_GE:
+          S << "isEqGreater(";
+          break;
+        case clang::BO_LT:
+          S << "isLess(";
+          break;
+        case clang::BO_LE:
+          S << "isEqLess(";
+          break;
+        case clang::BO_EQ:
+          S << "isEqual(";
+          break;
+        case clang::BO_NE:
+          S << "isNotEqual(";
+          break;
+        case clang::BO_LAnd:
+          S << "l_and(";
+          break;
+        case clang::BO_LOr:
+          S << "l_or(";
+          break;
+        default:
+          Cond->printPretty(S, nullptr,
+                            clang::PrintingPolicy(TheRewriter.getLangOpts()));
+          return;
+      }
+      convertCompositePredicate(o->getLHS(), S, TheRewriter);
+      S << ", ";
+      convertCompositePredicate(o->getRHS(), S, TheRewriter);
+      S << ")";
+    } else if (clang::isa<clang::ImplicitCastExpr>(Cond)) {
+      clang::ImplicitCastExpr *c =
+          clang::dyn_cast<clang::ImplicitCastExpr>(Cond);
+      switch (c->getCastKind()) {
+        case clang::CK_MemberPointerToBoolean:
+        case clang::CK_PointerToBoolean:
+        case clang::CK_IntegralToBoolean:
+        case clang::CK_FloatingToBoolean:
+        case clang::CK_FloatingComplexToBoolean:
+          S << "isNotEqual(";
+          Cond->printPretty(S, nullptr,
+                            clang::PrintingPolicy(TheRewriter.getLangOpts()));
+          S << ", 0)";
+          break;
+        default:
+          convertCompositePredicate(c->getSubExpr(), S, TheRewriter);
+      }
+    } else if (clang::isa<clang::UnaryOperator>(Cond)) {
+      clang::UnaryOperator *o = clang::dyn_cast<clang::UnaryOperator>(Cond);
+      clang::UnaryOperator::Opcode Opc = o->getOpcode();
+      switch (Opc) {
+        case clang::UO_PreInc:
+          S << "++";
+          break;
+        case clang::UO_PreDec:
+          S << "--";
+          break;
+        case clang::UO_Minus:
+          S << "-";
+          break;
+        case clang::UO_PostInc:
+          convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+          S << "++";
+          return;
+        case clang::UO_PostDec:
+          convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+          S << "--";
+          return;
+        case clang::UO_LNot:
+          S << "l_not(";
+          convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+          S << ")";
+          return;
+        default:
+          return;
+      }
+      convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+    } else if (clang::isa<clang::ParenExpr>(Cond)) {
+      clang::ParenExpr *o = clang::dyn_cast<clang::ParenExpr>(Cond);
+      convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+    } else {
+      Cond->printPretty(S, nullptr,
+                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
+    }
+  }
 
-            insertbranchlog(Cond, stmtid);
-        }
-        else if(isa<ForStmt>(s)) {
-            ForStmt *F = cast<ForStmt>(s);
-            int stmtid = assignStmtid(s);
+  bool VisitStmt(clang::Stmt *s) {
+    if (clang::isa<clang::DoStmt>(s)) {
+      clang::DoStmt *F = clang::cast<clang::DoStmt>(s);
+      int stmtid = assignStmtid(s);
 
-            Expr *Cond = F->getCond();
-            Stmt *Body = F->getBody();
+      clang::Expr *Cond = F->getCond();
+      clang::Stmt *Body = F->getBody();
 
-            assignDep(Body, s, true);
+      assignDep(Body, s, true);
 
-            insertbranchlog(Cond, stmtid);
-        }
-        else if(isa<IfStmt>(s)) {
-            IfStmt *I = cast<IfStmt>(s);
-            int stmtid = assignStmtid(s);
+      insertbranchlog(Cond, stmtid);
+    } else if (clang::isa<clang::ForStmt>(s)) {
+      clang::ForStmt *F = clang::cast<clang::ForStmt>(s);
+      int stmtid = assignStmtid(s);
 
-            Expr *Cond = I->getCond();
-            Stmt *Then = I->getThen();
-            Stmt *Else = I->getElse();
+      clang::Expr *Cond = F->getCond();
+      clang::Stmt *Body = F->getBody();
 
-            assignDep(Then, s, true);
-            if(Else)
-                assignDep(Else, s, false);
+      assignDep(Body, s, true);
 
-            insertbranchlog(Cond, stmtid);
-        }
-        else if(isa<WhileStmt>(s)) {
-            WhileStmt *F = cast<WhileStmt>(s);
-            int stmtid = assignStmtid(s);
+      insertbranchlog(Cond, stmtid);
+    } else if (clang::isa<clang::IfStmt>(s)) {
+      clang::IfStmt *I = clang::cast<clang::IfStmt>(s);
+      int stmtid = assignStmtid(s);
 
-            Expr *Cond = F->getCond();
-            Stmt *Body = F->getBody();
+      clang::Expr *Cond = I->getCond();
+      clang::Stmt *Then = I->getThen();
+      clang::Stmt *Else = I->getElse();
 
-            assignDep(Body, s, true);
+      assignDep(Then, s, true);
+      if (Else) assignDep(Else, s, false);
 
-            insertbranchlog(Cond, stmtid);
-        }
+      insertbranchlog(Cond, stmtid);
+    } else if (clang::isa<clang::WhileStmt>(s)) {
+      clang::WhileStmt *F = clang::cast<clang::WhileStmt>(s);
+      int stmtid = assignStmtid(s);
 
-        return true;
+      clang::Expr *Cond = F->getCond();
+      clang::Stmt *Body = F->getBody();
+
+      assignDep(Body, s, true);
+
+      insertbranchlog(Cond, stmtid);
     }
 
-    bool VisitFunctionDecl(FunctionDecl *f) {
-        TheRewriter.InsertTextAfter(f->getLocStart(), "extern \"C\"\n");
-        return true;
-    }
+    return true;
+  }
 
-private:
-    Rewriter &TheRewriter;
-    int id;
-    ControlDependency cfg;
+  bool VisitFunctionDecl(clang::FunctionDecl *f) {
+    TheRewriter.InsertTextAfter(f->getLocStart(), "extern \"C\"\n");
+    return true;
+  }
+
+ private:
+  clang::Rewriter &TheRewriter;
+  int id;
+  ControlDependency cfg;
 };
 
 // Implementation of the ASTConsumer interface for reading an AST produced
 // by the Clang parser.
-class MyASTConsumer : public ASTConsumer {
-public:
-    MyASTConsumer(StringRef functionName, Rewriter &R) 
+class MyASTConsumer : public clang::ASTConsumer {
+ public:
+  MyASTConsumer(StringRef functionName, clang::Rewriter &R)
       : target(functionName), Visitor(R) {}
 
-    // Override the method that gets called for each parsed top-level
-    // declaration.
-    virtual bool HandleTopLevelDecl(DeclGroupRef DR) {
-        for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b){
-            if (FunctionDecl *f = dyn_cast<FunctionDecl>(*b)) {
-              if (f->getName() == target) {
-                // Traverse the declaration using our AST visitor.
-                Visitor.TraverseDecl(*b);
-              }
-            }
+  // Override the method that gets called for each parsed top-level
+  // declaration.
+  virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
+    for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
+         ++b) {
+      if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
+        if (f->getName() == target) {
+          // Traverse the declaration using our AST visitor.
+          Visitor.TraverseDecl(*b);
         }
-        return true;
+      }
     }
+    return true;
+  }
 
-    ControlDependency getControlDep() {
-        return Visitor.getControlDep();
-    }
+  ControlDependency getControlDep() { return Visitor.getControlDep(); }
 
-    MyASTVisitor Visitor;
-private:
-    StringRef target;
+  MyASTVisitor Visitor;
+
+ private:
+  StringRef target;
 };
 
 ControlDependency instrument(StringRef fileName, StringRef functionName) {
-		// CompilerInstance will hold the instance of the Clang compiler for us,
-		// managing the various objects needed to run the compiler.
-		CompilerInstance TheCompInst;
-		TheCompInst.createDiagnostics();
+  // CompilerInstance will hold the instance of the Clang compiler for us,
+  // managing the various objects needed to run the compiler.
+  clang::CompilerInstance TheCompInst;
+  TheCompInst.createDiagnostics();
 
-		LangOptions &lo = TheCompInst.getLangOpts();
-		lo.CPlusPlus = 1;
+  clang::LangOptions &lo = TheCompInst.getLangOpts();
+  lo.CPlusPlus = 1;
 
-		// Initialize target info with the default triple for our platform.
-		auto TO = std::make_shared<TargetOptions>();
-		TO->Triple = llvm::sys::getDefaultTargetTriple();
-		TargetInfo *TI =
-						TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-		TheCompInst.setTarget(TI);
+  // Initialize target info with the default triple for our platform.
+  auto TO = std::make_shared<clang::TargetOptions>();
+  TO->Triple = llvm::sys::getDefaultTargetTriple();
+  clang::TargetInfo *TI =
+      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+  TheCompInst.setTarget(TI);
 
-		TheCompInst.createFileManager();
-		FileManager &FileMgr = TheCompInst.getFileManager();
-		TheCompInst.createSourceManager(FileMgr);
-		SourceManager &SourceMgr = TheCompInst.getSourceManager();
-		TheCompInst.createPreprocessor(TU_Module);
-		TheCompInst.createASTContext();
+  TheCompInst.createFileManager();
+  clang::FileManager &FileMgr = TheCompInst.getFileManager();
+  TheCompInst.createSourceManager(FileMgr);
+  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
+  TheCompInst.createPreprocessor(clang::TU_Module);
+  TheCompInst.createASTContext();
 
-		// A Rewriter helps us manage the code rewriting task.
-		Rewriter TheRewriter;
-		TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
+  // A Rewriter helps us manage the code rewriting task.
+  clang::Rewriter TheRewriter;
+  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
-		// Set the main file handled by the source manager to the input file.
-		const FileEntry *FileIn = FileMgr.getFile(fileName);
-		SourceMgr.setMainFileID(
-						SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
-		TheCompInst.getDiagnosticClient().BeginSourceFile(
-						TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
+  // Set the main file handled by the source manager to the input file.
+  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
+  SourceMgr.setMainFileID(SourceMgr.createFileID(
+      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
+  TheCompInst.getDiagnosticClient().BeginSourceFile(
+      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
 
-		// Create an AST consumer instance which is going to get called by
-		// ParseAST.
-		MyASTConsumer TheConsumer(functionName, TheRewriter);
+  // Create an AST consumer instance which is going to get called by
+  // ParseAST.
+  MyASTConsumer TheConsumer(functionName, TheRewriter);
 
-		TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "#include \"../util/branchdistance.cpp\"\n");
-		// Parse the file to AST, registering our consumer as the AST consumer.
-		ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-				TheCompInst.getASTContext());
-		MyASTVisitor &Visitor = TheConsumer.Visitor;
-		for(auto &it : Visitor.branchids){
-				if (Visitor.getDep(it.first).second == NULL){
-						int stmtid = Visitor.getStmtid(it.first);
-						Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
-				}
-		}
+  TheRewriter.InsertTextAfter(
+      SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
+      "#include \"../util/branchdistance.cpp\"\n");
+  // Parse the file to AST, registering our consumer as the AST consumer.
+  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+           TheCompInst.getASTContext());
+  MyASTVisitor &Visitor = TheConsumer.Visitor;
+  for (auto &it : Visitor.branchids) {
+    if (Visitor.getDep(it.first).second == NULL) {
+      int stmtid = Visitor.getStmtid(it.first);
+      Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
+    }
+  }
 
-		// At this point the rewriter's buffer should be full with the rewritten
-		// file contents.
-		const RewriteBuffer *RewriteBuf =
-			TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-		std::string f = std::string(fileName);
-		std::string filename = f.substr(0, f.find_last_of('.'));
-		filename = filename + ".inst.cpp";
-		std::ofstream out(filename.c_str());
-		out << std::string(RewriteBuf->begin(), RewriteBuf->end());
+  // At this point the rewriter's buffer should be full with the rewritten
+  // file contents.
+  const clang::RewriteBuffer *RewriteBuf =
+      TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
+  std::string f = std::string(fileName);
+  std::string filename = f.substr(0, f.find_last_of('.'));
+  filename = filename + ".inst.cpp";
+  std::ofstream out(filename.c_str());
+  out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 
-		return TheConsumer.getControlDep();
+  return TheConsumer.getControlDep();
 }
 
-std::tuple<std::string, std::vector<std::string>> getDeclaration(StringRef fileName, StringRef functionName) {
-		// CompilerInstance will hold the instance of the Clang compiler for us,
-		// managing the various objects needed to run the compiler.
-		CompilerInstance TheCompInst;
-		TheCompInst.createDiagnostics();
+std::tuple<std::string, std::vector<std::string>> getDeclaration(
+    StringRef fileName, StringRef functionName) {
+  // CompilerInstance will hold the instance of the Clang compiler for us,
+  // managing the various objects needed to run the compiler.
+  clang::CompilerInstance TheCompInst;
+  TheCompInst.createDiagnostics();
 
-		LangOptions &lo = TheCompInst.getLangOpts();
-		lo.CPlusPlus = 1;
+  clang::LangOptions &lo = TheCompInst.getLangOpts();
+  lo.CPlusPlus = 1;
 
-		// Initialize target info with the default triple for our platform.
-		auto TO = std::make_shared<TargetOptions>();
-		TO->Triple = llvm::sys::getDefaultTargetTriple();
-		TargetInfo *TI =
-						TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-		TheCompInst.setTarget(TI);
+  // Initialize target info with the default triple for our platform.
+  auto TO = std::make_shared<clang::TargetOptions>();
+  TO->Triple = llvm::sys::getDefaultTargetTriple();
+  clang::TargetInfo *TI =
+      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+  TheCompInst.setTarget(TI);
 
-		TheCompInst.createFileManager();
-		FileManager &FileMgr = TheCompInst.getFileManager();
-		TheCompInst.createSourceManager(FileMgr);
-		SourceManager &SourceMgr = TheCompInst.getSourceManager();
-		TheCompInst.createPreprocessor(TU_Module);
-		TheCompInst.createASTContext();
+  TheCompInst.createFileManager();
+  clang::FileManager &FileMgr = TheCompInst.getFileManager();
+  TheCompInst.createSourceManager(FileMgr);
+  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
+  TheCompInst.createPreprocessor(clang::TU_Module);
+  TheCompInst.createASTContext();
 
-		// A Rewriter helps us manage the code rewriting task.
-		Rewriter TheRewriter;
-		TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
+  // A Rewriter helps us manage the code rewriting task.
+  clang::Rewriter TheRewriter;
+  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
 
-		// Set the main file handled by the source manager to the input file.
-		const FileEntry *FileIn = FileMgr.getFile(fileName);
-		SourceMgr.setMainFileID(
-						SourceMgr.createFileID(FileIn, SourceLocation(), SrcMgr::C_User));
-		TheCompInst.getDiagnosticClient().BeginSourceFile(
-						TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
+  // Set the main file handled by the source manager to the input file.
+  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
+  SourceMgr.setMainFileID(SourceMgr.createFileID(
+      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
+  TheCompInst.getDiagnosticClient().BeginSourceFile(
+      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
 
-		// Create an AST consumer instance which is going to get called by
-		// ParseAST.
-		DeclarationConsumer TheConsumer(functionName, TheRewriter);
+  // Create an AST consumer instance which is going to get called by
+  // ParseAST.
+  DeclarationConsumer TheConsumer(functionName, TheRewriter);
 
-		// Parse the file to AST, registering our consumer as the AST consumer.
-		ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-				TheCompInst.getASTContext());
+  // Parse the file to AST, registering our consumer as the AST consumer.
+  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+           TheCompInst.getASTContext());
 
-		return std::tuple<std::string, std::vector<std::string>>(TheConsumer.getDeclarationString(), TheConsumer.getParams());
+  return std::tuple<std::string, std::vector<std::string>>(
+      TheConsumer.getDeclarationString(), TheConsumer.getParams());
 }
