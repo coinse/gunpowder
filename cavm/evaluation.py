@@ -73,7 +73,7 @@ class ObjFunc:
                 i.append(vector[idx])
                 idx += 1
             elif c_type[-1:] == '*':
-                underlying_type = c_type[:-1]
+                underlying_type = c_type[:-1].strip()
                 if underlying_type in scalar_types:
                   i.append(self.ffi.new(c_type, vector[idx]))
                 elif underlying_type[:6] == 'struct':

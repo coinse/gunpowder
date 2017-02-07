@@ -215,6 +215,15 @@ class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
         case clang::UO_PreDec:
           S << "--";
           break;
+        case clang::UO_AddrOf:
+          S << "&";
+          break;
+        case clang::UO_Deref:
+          S << "*";
+          break;
+        case clang::UO_Plus:
+          S << "+";
+          break;
         case clang::UO_Minus:
           S << "-";
           break;
