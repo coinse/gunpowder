@@ -71,3 +71,25 @@ class DeclarationConsumer : public clang::ASTConsumer {
   std::string decl;
   std::vector<std::string> params;
 };
+
+class FunctionConsumer : public clang::ASTConsumer {
+ public:
+  FunctionConsumer() {}
+
+  virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
+    for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
+         ++b) {
+      if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
+            if (f->hasBody()) {
+              decls.push_back(f->getNameAsString());
+        }
+      }
+    }
+    return true;
+  }
+
+  std::vector<std::string> getFunctions() { return decls; }
+
+ private:
+  std::vector<std::string> decls;
+};

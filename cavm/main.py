@@ -102,11 +102,11 @@ def main():
         default=1,
         required=False)
     args = parser.parse_args()
+    parser = Parser(args.target)
 
     if args.function:
         name, _ = path.splitext(args.target)
         dlib = name + '.so'
-        parser = Parser(args.target)
         cfg = get_dep_map(parser.instrument(args.function))
 
         proc = run([
@@ -156,8 +156,10 @@ def main():
                             args.max, args.termination, args.prec))
 
     else:
-        # TODO: print out the list of functions in target code
-        print('list of functions')
+        print('Specify the target function using -f option.')
+        print('Functions in %s:' % args.target)
+        for i in parser.get_functions():
+          print('\t', i)
 
 
 if __name__ == '__main__':

@@ -55,11 +55,23 @@ static PyObject *Parser_getDecl(Parser *self, PyObject *args) {
   return tp;
 }
 
+static PyObject *Parser_getFunctions(Parser *self) {
+  std::vector<std::string> ret = getFunctions(self->filename);
+
+  PyObject *f = PyList_New(0);
+  for (const auto &i : ret)
+    PyList_Append(f, PyUnicode_FromString(i.c_str()));
+
+  return f;
+}
+
 static PyMethodDef methods[] = {
     {"instrument", (PyCFunction)Parser_instrument, METH_VARARGS,
      "Instrument given c code."},
     {"get_decl", (PyCFunction)Parser_getDecl, METH_VARARGS,
      "Get declaration given function."},
+    {"get_functions", (PyCFunction)Parser_getFunctions, METH_NOARGS,
+     "Get list of functions."},
     {NULL}};
 
 static PyType_Slot CAVMTypeSlots[] = {

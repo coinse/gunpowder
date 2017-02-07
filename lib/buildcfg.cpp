@@ -453,3 +453,48 @@ std::tuple<std::string, std::vector<std::string>> getDeclaration(
   return std::tuple<std::string, std::vector<std::string>>(
       TheConsumer.getDeclarationString(), TheConsumer.getParams());
 }
+
+std::vector<std::string> getFunctions(StringRef fileName) {
+  // CompilerInstance will hold the instance of the Clang compiler for us,
+  // managing the various objects needed to run the compiler.
+  clang::CompilerInstance TheCompInst;
+  TheCompInst.createDiagnostics();
+
+  clang::LangOptions &lo = TheCompInst.getLangOpts();
+  lo.CPlusPlus = 1;
+
+  // Initialize target info with the default triple for our platform.
+  auto TO = std::make_shared<clang::TargetOptions>();
+  TO->Triple = llvm::sys::getDefaultTargetTriple();
+  clang::TargetInfo *TI =
+      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+  TheCompInst.setTarget(TI);
+
+  TheCompInst.createFileManager();
+  clang::FileManager &FileMgr = TheCompInst.getFileManager();
+  TheCompInst.createSourceManager(FileMgr);
+  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
+  TheCompInst.createPreprocessor(clang::TU_Module);
+  TheCompInst.createASTContext();
+
+  // A Rewriter helps us manage the code rewriting task.
+  clang::Rewriter TheRewriter;
+  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
+
+  // Set the main file handled by the source manager to the input file.
+  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
+  SourceMgr.setMainFileID(SourceMgr.createFileID(
+      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
+  TheCompInst.getDiagnosticClient().BeginSourceFile(
+      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
+
+  // Create an AST consumer instance which is going to get called by
+  // ParseAST.
+  FunctionConsumer TheConsumer;
+
+  // Parse the file to AST, registering our consumer as the AST consumer.
+  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
+           TheCompInst.getASTContext());
+
+  return TheConsumer.getFunctions();
+}
