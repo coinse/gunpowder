@@ -80,26 +80,17 @@ ifneq ($(UNAME),Darwin)
 endif
 CLANG_LIBS += \
 	-lclangAST \
-	-lclangASTMatchers \
 	-lclangAnalysis \
 	-lclangBasic \
 	-lclangDriver \
 	-lclangEdit \
 	-lclangFrontend \
-	-lclangFrontendTool \
 	-lclangLex \
 	-lclangParse \
 	-lclangSema \
-	-lclangEdit \
 	-lclangRewrite \
-	-lclangRewriteFrontend \
-	-lclangStaticAnalyzerFrontend \
-	-lclangStaticAnalyzerCheckers \
-	-lclangStaticAnalyzerCore \
-	-lclangSerialization \
-	-lclangToolingCore \
-	-lclangTooling \
-	-lclangFormat
+	-lclangSerialization
+
 ifneq ($(UNAME),Darwin)
   CLANG_LIBS += \
     -Wl,--end-group
