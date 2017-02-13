@@ -55,18 +55,22 @@ LLVM_LDFLAGS_NOLIBS = LLVM_BIN_PATH + '/llvm-config --ldflags'
 PLUGIN_LDFLAGS = '-shared -Wl,-undefined,dynamic_lookup'
 
 CLANG_INCLUDES = [
-    LLVM_SRC_PATH + '/tools/clang/include', LLVM_BUILD_PATH +
-    '/tools/clang/include'
+    LLVM_SRC_PATH + '/tools/clang/include',
+    LLVM_BUILD_PATH + '/tools/clang/include'
 ]
 
 CLANG_LIBS = [
-    '-lclangAST', '-lclangASTMatchers', '-lclangAnalysis', '-lclangBasic',
-    '-lclangDriver', '-lclangEdit', '-lclangFrontend', '-lclangFrontendTool',
-    '-lclangLex', '-lclangParse', '-lclangSema', '-lclangEdit',
-    '-lclangRewrite', '-lclangRewriteFrontend',
-    '-lclangStaticAnalyzerFrontend', '-lclangStaticAnalyzerCheckers',
-    '-lclangStaticAnalyzerCore', '-lclangSerialization', '-lclangToolingCore',
-    '-lclangTooling', '-lclangFormat'
+    '-lclangAST',
+    '-lclangAnalysis',
+    '-lclangBasic',
+    '-lclangDriver',
+    '-lclangEdit',
+    '-lclangFrontend',
+    '-lclangLex',
+    '-lclangParse',
+    '-lclangSema',
+    '-lclangRewrite',
+    '-lclangSerialization',
 ]
 if platform.system() != 'Darwin':
     CLANG_LIBS = ['-Wl,--start-group'] + CLANG_LIBS + ['-Wl,--end-group']
@@ -93,8 +97,14 @@ setup(
     long_description=long_description,
     license='MIT',
     packages=find_packages(),
-    entry_points={'console_scripts': ['cavm = cavm.main:main', ], },
-    install_requires=['cffi', ],
+    entry_points={
+        'console_scripts': [
+            'cavm = cavm.main:main',
+        ],
+    },
+    install_requires=[
+        'cffi',
+    ],
     ext_modules=[module],
     classifiers=[
         'Development Status :: 3 - Alpha',
