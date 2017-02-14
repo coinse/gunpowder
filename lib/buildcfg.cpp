@@ -458,6 +458,8 @@ std::vector<std::string> getFunctions(StringRef fileName) {
   // CompilerInstance will hold the instance of the Clang compiler for us,
   // managing the various objects needed to run the compiler.
   clang::CompilerInstance TheCompInst;
+  clang::HeaderSearchOptions hso = TheCompInst.getHeaderSearchOpts();
+  hso.UseBuiltinIncludes = true;
   TheCompInst.createDiagnostics();
 
   clang::LangOptions &lo = TheCompInst.getLangOpts();
