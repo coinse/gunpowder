@@ -24,6 +24,8 @@
 #include "clang/Parse/ParseAST.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Rewrite/Frontend/Rewriters.h"
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Tooling/Tooling.h"
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/raw_ostream.h"
@@ -141,12 +143,14 @@ class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
   }
 
   void insertbranchlog(clang::Expr *Cond, int stmtid) {
+		if (Cond != nullptr) {
     std::string str;
     llvm::raw_string_ostream S(str);
     S << "inst(" << stmtid << ", ";
     convertCompositePredicate(Cond, S, TheRewriter);
     S << ")";
     TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+		}
   }
 
   void convertCompositePredicate(clang::Expr *Cond, llvm::raw_string_ostream &S,
@@ -342,9 +346,52 @@ class MyASTConsumer : public clang::ASTConsumer {
   StringRef target;
 };
 
+class MyFrontendAction : public clang::ASTFrontendAction {
+public:
+	MyFrontendAction(StringRef functionName)
+		: n(functionName) {}
+	virtual void EndSourceFileAction() {
+		const clang::RewriteBuffer *RewriteBuf =
+				r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
+		std::cout << std::string(RewriteBuf->begin(), RewriteBuf->end());
+	}
+	virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+		clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
+		r.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
+		return std::unique_ptr<clang::ASTConsumer>(new MyASTConsumer(n, r));
+	}
+private:
+	StringRef n;
+	clang::Rewriter r;
+};
+
+class ActionFactory : public clang::tooling::FrontendActionFactory {
+public:
+	ActionFactory(StringRef functionName)
+		: n(functionName) {}
+	clang::FrontendAction *create() override { return new MyFrontendAction(n); }
+private:
+	StringRef n;
+};
+
+static llvm::cl::OptionCategory Category("options");
+
 ControlDependency instrument(StringRef fileName, StringRef functionName) {
   // CompilerInstance will hold the instance of the Clang compiler for us,
   // managing the various objects needed to run the compiler.
+  int argc = 3;
+  const char *argv[] = { "clang", "input.c", "--" };
+  clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
+  std::cout << "parsed" << std::endl;
+  std::vector<std::string> Sources;
+  Sources.push_back(fileName);
+  clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
+	std::unique_ptr<clang::tooling::FrontendActionFactory> f;
+	f = std::unique_ptr<clang::tooling::FrontendActionFactory>(
+		new ActionFactory(functionName));
+  Tool.run(f.get());
+	ControlDependency c;
+  return c;
   clang::CompilerInstance TheCompInst;
   TheCompInst.createDiagnostics();
 
@@ -396,6 +443,7 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
 
   // At this point the rewriter's buffer should be full with the rewritten
   // file contents.
+	/*
   const clang::RewriteBuffer *RewriteBuf =
       TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
   std::string f = std::string(fileName);
@@ -405,6 +453,7 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
   out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 
   return TheConsumer.getControlDep();
+	*/
 }
 
 std::tuple<std::string, std::vector<std::string>> getDeclaration(
@@ -455,6 +504,16 @@ std::tuple<std::string, std::vector<std::string>> getDeclaration(
 }
 
 std::vector<std::string> getFunctions(StringRef fileName) {
+
+  int argc = 3;
+  const char *argv[] = { "clang", "input.c", "--" };
+  clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
+  std::cout << "parsed" << std::endl;
+  std::vector<std::string> Sources;
+  Sources.push_back(fileName);
+  clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
+  Tool.run(clang::tooling::newFrontendActionFactory<FunctionListAction>().get());
+  return Sources;
   // CompilerInstance will hold the instance of the Clang compiler for us,
   // managing the various objects needed to run the compiler.
   clang::CompilerInstance TheCompInst;

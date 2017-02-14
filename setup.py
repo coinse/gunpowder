@@ -66,10 +66,12 @@ CLANG_LIBS = [
     '-lclangDriver',
     '-lclangEdit',
     '-lclangFrontend',
+    '-lclangFrontendTool',
     '-lclangLex',
     '-lclangParse',
     '-lclangSema',
     '-lclangRewrite',
+    '-lclangTooling',
     '-lclangSerialization',
 ]
 if platform.system() != 'Darwin':

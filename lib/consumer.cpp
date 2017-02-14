@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include "clang/Frontend/FrontendAction.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/Analysis/CFG.h"
 
@@ -80,9 +81,8 @@ class FunctionConsumer : public clang::ASTConsumer {
     for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
          ++b) {
       if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
-        if (f->hasBody()) {
           decls.push_back(f->getNameAsString());
-        }
+          std::cout << f->getNameAsString() << std::endl;
       }
     }
     return true;
@@ -92,4 +92,12 @@ class FunctionConsumer : public clang::ASTConsumer {
 
  private:
   std::vector<std::string> decls;
+};
+
+class FunctionListAction : public clang::ASTFrontendAction {
+  public:
+    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+      clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
+      return std::unique_ptr<clang::ASTConsumer>(new FunctionConsumer);
+    }
 };
