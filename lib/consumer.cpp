@@ -10,7 +10,7 @@ typedef std::tuple<std::string, std::vector<std::string>> Decl;
 
 class DeclarationConsumer : public clang::ASTConsumer {
  public:
-  DeclarationConsumer(StringRef functionName, clang::Rewriter &R, Decl &out)
+  explicit DeclarationConsumer(StringRef functionName, clang::Rewriter &R, Decl &out)
       : target(functionName), decl(out) {}
 
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
