@@ -426,7 +426,6 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
   return (f.get())->getResult();
 }
 
-
 Decl getDeclaration(StringRef fileName, StringRef functionName) {
   int argc = 3;
   const char *argv[] = { "clang", "input.c", "--" };
