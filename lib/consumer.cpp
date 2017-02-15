@@ -11,7 +11,7 @@ typedef std::tuple<std::string, std::vector<std::string>> Decl;
 class DeclarationConsumer : public clang::ASTConsumer {
  public:
   DeclarationConsumer(StringRef functionName, clang::Rewriter &R, Decl &out)
-      : target(functionName), rewriter(R), decl(out) {}
+      : target(functionName), decl(out) {}
 
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
     for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
@@ -66,7 +66,6 @@ class DeclarationConsumer : public clang::ASTConsumer {
 
  private:
   StringRef target;
-  clang::Rewriter &rewriter;
   Decl &decl;
 };
 
