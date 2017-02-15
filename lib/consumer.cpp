@@ -6,10 +6,12 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/Analysis/CFG.h"
 
+typedef std::tuple<std::string, std::vector<std::string>> Decl;
+
 class DeclarationConsumer : public clang::ASTConsumer {
  public:
-  DeclarationConsumer(StringRef functionName, clang::Rewriter &R)
-      : target(functionName), rewriter(R) {}
+  DeclarationConsumer(StringRef functionName, clang::Rewriter &R, Decl &out)
+      : target(functionName), rewriter(R), decl(out) {}
 
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
     for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
@@ -30,14 +32,14 @@ class DeclarationConsumer : public clang::ASTConsumer {
                 if (i > 0) ss << ',';
                 std::string t =
                     clang::QualType::getAsString(it->getType().split());
-                params.push_back(t);
+                std::get<1>(decl).push_back(t);
                 ss << t << ' ';
                 ss << it->getNameAsString();
 
                 i++;
               }
               ss << ");";
-              decl = ss.str();
+              std::get<0>(decl) = ss.str();
             }
           } else if (clang::RecordDecl *f =
                          clang::dyn_cast<clang::RecordDecl>(*b)) {
@@ -49,11 +51,11 @@ class DeclarationConsumer : public clang::ASTConsumer {
             llvm::StringRef ref = clang::Lexer::getSourceText(
                 clang::CharSourceRange::getCharRange(r),
                 rewriter.getSourceMgr(), rewriter.getLangOpts());
-            decl = ref.str() + ";";
+            std::get<0>(decl) = ref.str() + ";";
             for (const auto &i : f->fields()) {
               std::string t =
                   clang::QualType::getAsString(i->getType().split());
-              params.push_back(t);
+              std::get<1>(decl).push_back(t);
             }
           }
         }
@@ -62,15 +64,25 @@ class DeclarationConsumer : public clang::ASTConsumer {
     return true;
   }
 
-  std::string getDeclarationString() { return decl; }
-
-  std::vector<std::string> getParams() { return params; }
-
  private:
   StringRef target;
   clang::Rewriter &rewriter;
-  std::string decl;
-  std::vector<std::string> params;
+  Decl &decl;
+};
+
+class DeclarationAction : public clang::ASTFrontendAction {
+  public:
+    DeclarationAction(StringRef funcName, Decl &out)
+      : funcName(funcName), out(out) {}
+    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+      clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
+      r.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
+      return std::unique_ptr<clang::ASTConsumer>(new DeclarationConsumer(funcName, r, out));
+    }
+  private:
+    StringRef funcName;
+    Decl &out;
+    clang::Rewriter r;
 };
 
 class FunctionConsumer : public clang::ASTConsumer {
@@ -82,7 +94,7 @@ class FunctionConsumer : public clang::ASTConsumer {
          ++b) {
       if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
           decls.push_back(f->getNameAsString());
-          std::cout << f->getNameAsString() << std::endl;
+          std::cout << "\t" << f->getNameAsString() << std::endl;
       }
     }
     return true;

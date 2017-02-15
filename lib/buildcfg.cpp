@@ -36,7 +36,7 @@ typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
 
 class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
  public:
-  explicit MyASTVisitor(clang::Rewriter &R) : TheRewriter(R) { id = 0; }
+  explicit MyASTVisitor(clang::Rewriter &R, ControlDependency &out) : TheRewriter(R), cfg(out) { id = 0; }
 
   typedef std::vector<std::pair<clang::Stmt *, int>> branchidsty;
   branchidsty branchids;
@@ -313,15 +313,15 @@ class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
  private:
   clang::Rewriter &TheRewriter;
   int id;
-  ControlDependency cfg;
+  ControlDependency &cfg;
 };
 
 // Implementation of the ASTConsumer interface for reading an AST produced
 // by the Clang parser.
 class MyASTConsumer : public clang::ASTConsumer {
  public:
-  MyASTConsumer(StringRef functionName, clang::Rewriter &R)
-      : target(functionName), Visitor(R) {}
+  MyASTConsumer(StringRef functionName, clang::Rewriter &R, ControlDependency &out)
+      : target(functionName), Visitor(R, out) {}
 
   // Override the method that gets called for each parsed top-level
   // declaration.
@@ -331,10 +331,18 @@ class MyASTConsumer : public clang::ASTConsumer {
       if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
         if (f->getName() == target) {
           // Traverse the declaration using our AST visitor.
+          (*b)->dumpColor();
           Visitor.TraverseDecl(*b);
         }
       }
     }
+    for (auto &it : Visitor.branchids) {
+      if (Visitor.getDep(it.first).second == NULL) {
+        int stmtid = Visitor.getStmtid(it.first);
+        Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
+      }
+    }
+
     return true;
   }
 
@@ -348,214 +356,102 @@ class MyASTConsumer : public clang::ASTConsumer {
 
 class MyFrontendAction : public clang::ASTFrontendAction {
 public:
-	MyFrontendAction(StringRef functionName)
-		: n(functionName) {}
+	MyFrontendAction(StringRef fileName, StringRef funcName, ControlDependency &out)
+		: fileName(fileName), funcName(funcName), out(out) {}
 	virtual void EndSourceFileAction() {
 		const clang::RewriteBuffer *RewriteBuf =
 				r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
-		std::cout << std::string(RewriteBuf->begin(), RewriteBuf->end());
+    std::string f = std::string(fileName);
+    std::string filename = f.substr(0, f.find_last_of('.'));
+    filename = filename + ".inst.cpp";
+    std::ofstream out(filename.c_str());
+    out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 	}
 	virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
 		clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
-		r.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
-		return std::unique_ptr<clang::ASTConsumer>(new MyASTConsumer(n, r));
+    clang::SourceManager &SourceMgr = Compiler.getSourceManager();
+		r.setSourceMgr(SourceMgr, Compiler.getLangOpts());
+    r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID())
+      , "#include \"../util/branchdistance.cpp\"\n");
+		return std::unique_ptr<clang::ASTConsumer>(new MyASTConsumer(funcName, r, out));
 	}
 private:
-	StringRef n;
+	StringRef fileName;
+	StringRef funcName;
+  ControlDependency &out;
 	clang::Rewriter r;
 };
 
+template <typename T>
+class MyFrontendActionFactory : public clang::tooling::FrontendActionFactory {
+public:
+	MyFrontendActionFactory(StringRef fileName, StringRef funcName)
+		: fileName(fileName), funcName(funcName) {}
+	clang::FrontendAction *create() override { return new MyFrontendAction(fileName, funcName, result); }
+  T getResult() { return result; }
+private:
+	StringRef fileName;
+	StringRef funcName;
+  T result;
+};
+
+template <typename T>
 class ActionFactory : public clang::tooling::FrontendActionFactory {
 public:
-	ActionFactory(StringRef functionName)
-		: n(functionName) {}
-	clang::FrontendAction *create() override { return new MyFrontendAction(n); }
+	ActionFactory(StringRef funcName)
+		: funcName(funcName) {}
+	clang::FrontendAction *create() override { return new DeclarationAction(funcName, result); }
+  T getResult() { return result; }
 private:
-	StringRef n;
+	StringRef funcName;
+  T result;
 };
 
 static llvm::cl::OptionCategory Category("options");
 
 ControlDependency instrument(StringRef fileName, StringRef functionName) {
-  // CompilerInstance will hold the instance of the Clang compiler for us,
-  // managing the various objects needed to run the compiler.
   int argc = 3;
   const char *argv[] = { "clang", "input.c", "--" };
+
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
-  std::cout << "parsed" << std::endl;
   std::vector<std::string> Sources;
   Sources.push_back(fileName);
+
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-	std::unique_ptr<clang::tooling::FrontendActionFactory> f;
-	f = std::unique_ptr<clang::tooling::FrontendActionFactory>(
-		new ActionFactory(functionName));
+	std::unique_ptr<MyFrontendActionFactory<ControlDependency>> f;
+	f = std::unique_ptr<MyFrontendActionFactory<ControlDependency>>(
+		new MyFrontendActionFactory<ControlDependency>(fileName, functionName));
   Tool.run(f.get());
-	ControlDependency c;
-  return c;
-  clang::CompilerInstance TheCompInst;
-  TheCompInst.createDiagnostics();
 
-  clang::LangOptions &lo = TheCompInst.getLangOpts();
-  lo.CPlusPlus = 1;
-
-  // Initialize target info with the default triple for our platform.
-  auto TO = std::make_shared<clang::TargetOptions>();
-  TO->Triple = llvm::sys::getDefaultTargetTriple();
-  clang::TargetInfo *TI =
-      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-  TheCompInst.setTarget(TI);
-
-  TheCompInst.createFileManager();
-  clang::FileManager &FileMgr = TheCompInst.getFileManager();
-  TheCompInst.createSourceManager(FileMgr);
-  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
-  TheCompInst.createPreprocessor(clang::TU_Module);
-  TheCompInst.createASTContext();
-
-  // A Rewriter helps us manage the code rewriting task.
-  clang::Rewriter TheRewriter;
-  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
-
-  // Set the main file handled by the source manager to the input file.
-  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
-  SourceMgr.setMainFileID(SourceMgr.createFileID(
-      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
-  TheCompInst.getDiagnosticClient().BeginSourceFile(
-      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
-
-  // Create an AST consumer instance which is going to get called by
-  // ParseAST.
-  MyASTConsumer TheConsumer(functionName, TheRewriter);
-
-  TheRewriter.InsertTextAfter(
-      SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
-      "#include \"../util/branchdistance.cpp\"\n");
-  // Parse the file to AST, registering our consumer as the AST consumer.
-  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-           TheCompInst.getASTContext());
-  MyASTVisitor &Visitor = TheConsumer.Visitor;
-  for (auto &it : Visitor.branchids) {
-    if (Visitor.getDep(it.first).second == NULL) {
-      int stmtid = Visitor.getStmtid(it.first);
-      Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
-    }
-  }
-
-  // At this point the rewriter's buffer should be full with the rewritten
-  // file contents.
-	/*
-  const clang::RewriteBuffer *RewriteBuf =
-      TheRewriter.getRewriteBufferFor(SourceMgr.getMainFileID());
-  std::string f = std::string(fileName);
-  std::string filename = f.substr(0, f.find_last_of('.'));
-  filename = filename + ".inst.cpp";
-  std::ofstream out(filename.c_str());
-  out << std::string(RewriteBuf->begin(), RewriteBuf->end());
-
-  return TheConsumer.getControlDep();
-	*/
+  return (f.get())->getResult();
 }
 
-std::tuple<std::string, std::vector<std::string>> getDeclaration(
-    StringRef fileName, StringRef functionName) {
-  // CompilerInstance will hold the instance of the Clang compiler for us,
-  // managing the various objects needed to run the compiler.
-  clang::CompilerInstance TheCompInst;
-  TheCompInst.createDiagnostics();
 
-  clang::LangOptions &lo = TheCompInst.getLangOpts();
-  lo.CPlusPlus = 1;
-
-  // Initialize target info with the default triple for our platform.
-  auto TO = std::make_shared<clang::TargetOptions>();
-  TO->Triple = llvm::sys::getDefaultTargetTriple();
-  clang::TargetInfo *TI =
-      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-  TheCompInst.setTarget(TI);
-
-  TheCompInst.createFileManager();
-  clang::FileManager &FileMgr = TheCompInst.getFileManager();
-  TheCompInst.createSourceManager(FileMgr);
-  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
-  TheCompInst.createPreprocessor(clang::TU_Module);
-  TheCompInst.createASTContext();
-
-  // A Rewriter helps us manage the code rewriting task.
-  clang::Rewriter TheRewriter;
-  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
-
-  // Set the main file handled by the source manager to the input file.
-  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
-  SourceMgr.setMainFileID(SourceMgr.createFileID(
-      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
-  TheCompInst.getDiagnosticClient().BeginSourceFile(
-      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
-
-  // Create an AST consumer instance which is going to get called by
-  // ParseAST.
-  DeclarationConsumer TheConsumer(functionName, TheRewriter);
-
-  // Parse the file to AST, registering our consumer as the AST consumer.
-  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-           TheCompInst.getASTContext());
-
-  return std::tuple<std::string, std::vector<std::string>>(
-      TheConsumer.getDeclarationString(), TheConsumer.getParams());
-}
-
-std::vector<std::string> getFunctions(StringRef fileName) {
-
+Decl getDeclaration(StringRef fileName, StringRef functionName) {
   int argc = 3;
   const char *argv[] = { "clang", "input.c", "--" };
+
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
-  std::cout << "parsed" << std::endl;
   std::vector<std::string> Sources;
   Sources.push_back(fileName);
+
+  clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
+	std::unique_ptr<ActionFactory<Decl>> f;
+	f = std::unique_ptr<ActionFactory<Decl>>(
+		new ActionFactory<Decl>(functionName));
+  Tool.run(f.get());
+
+  return (f.get())->getResult();
+}
+
+void getFunctions(StringRef fileName) {
+  int argc = 3;
+  const char *argv[] = { "clang", "input.c", "--" };
+
+  clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
+  std::vector<std::string> Sources;
+  Sources.push_back(fileName);
+
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
   Tool.run(clang::tooling::newFrontendActionFactory<FunctionListAction>().get());
-  return Sources;
-  // CompilerInstance will hold the instance of the Clang compiler for us,
-  // managing the various objects needed to run the compiler.
-  clang::CompilerInstance TheCompInst;
-  clang::HeaderSearchOptions hso = TheCompInst.getHeaderSearchOpts();
-  hso.UseBuiltinIncludes = true;
-  TheCompInst.createDiagnostics();
-
-  clang::LangOptions &lo = TheCompInst.getLangOpts();
-  lo.CPlusPlus = 1;
-
-  // Initialize target info with the default triple for our platform.
-  auto TO = std::make_shared<clang::TargetOptions>();
-  TO->Triple = llvm::sys::getDefaultTargetTriple();
-  clang::TargetInfo *TI =
-      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
-  TheCompInst.setTarget(TI);
-
-  TheCompInst.createFileManager();
-  clang::FileManager &FileMgr = TheCompInst.getFileManager();
-  TheCompInst.createSourceManager(FileMgr);
-  clang::SourceManager &SourceMgr = TheCompInst.getSourceManager();
-  TheCompInst.createPreprocessor(clang::TU_Module);
-  TheCompInst.createASTContext();
-
-  // A Rewriter helps us manage the code rewriting task.
-  clang::Rewriter TheRewriter;
-  TheRewriter.setSourceMgr(SourceMgr, TheCompInst.getLangOpts());
-
-  // Set the main file handled by the source manager to the input file.
-  const clang::FileEntry *FileIn = FileMgr.getFile(fileName);
-  SourceMgr.setMainFileID(SourceMgr.createFileID(
-      FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
-  TheCompInst.getDiagnosticClient().BeginSourceFile(
-      TheCompInst.getLangOpts(), &TheCompInst.getPreprocessor());
-
-  // Create an AST consumer instance which is going to get called by
-  // ParseAST.
-  FunctionConsumer TheConsumer;
-
-  // Parse the file to AST, registering our consumer as the AST consumer.
-  ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
-           TheCompInst.getASTContext());
-
-  return TheConsumer.getFunctions();
 }

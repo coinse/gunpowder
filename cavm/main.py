@@ -158,8 +158,7 @@ def main():
     else:
         print('Specify the target function using -f option.')
         print('Functions in %s:' % args.target)
-        for i in parser.get_functions():
-            print('\t', i)
+        parser.get_functions()
 
 
 if __name__ == '__main__':

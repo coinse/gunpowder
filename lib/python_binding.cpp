@@ -56,12 +56,8 @@ static PyObject *Parser_getDecl(Parser *self, PyObject *args) {
 }
 
 static PyObject *Parser_getFunctions(Parser *self) {
-  std::vector<std::string> ret = getFunctions(self->filename);
-
-  PyObject *f = PyList_New(0);
-  for (const auto &i : ret) PyList_Append(f, PyUnicode_FromString(i.c_str()));
-
-  return f;
+  getFunctions(self->filename);
+  return Py_None;
 }
 
 static PyMethodDef methods[] = {
