@@ -10,7 +10,7 @@ typedef std::tuple<std::string, std::vector<std::string>> Decl;
 
 class DeclarationConsumer : public clang::ASTConsumer {
  public:
-  explicit DeclarationConsumer(StringRef functionName, clang::Rewriter &R, Decl &out)
+  explicit DeclarationConsumer(StringRef functionName, Decl &out)
       : target(functionName), decl(out) {}
 
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR) {
@@ -75,13 +75,11 @@ class DeclarationAction : public clang::ASTFrontendAction {
       : funcName(funcName), out(out) {}
     virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
-      r.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
-      return std::unique_ptr<clang::ASTConsumer>(new DeclarationConsumer(funcName, r, out));
+      return std::unique_ptr<clang::ASTConsumer>(new DeclarationConsumer(funcName, out));
     }
   private:
     StringRef funcName;
     Decl &out;
-    clang::Rewriter r;
 };
 
 class FunctionConsumer : public clang::ASTConsumer {
