@@ -1,10 +1,10 @@
 // Copyright 2017 COINSE Lab.
+#include "./buildcfg.cpp"
 #include <Python.h>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <vector>
-#include "./buildcfg.cpp"
 
 struct Parser {
   PyObject_HEAD std::string filename;
@@ -15,7 +15,8 @@ static void Parser_dealloc(Parser *self) {}
 static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
   const char *filename;
 
-  if (!PyArg_ParseTuple(args, "s", &filename)) return -1;
+  if (!PyArg_ParseTuple(args, "s", &filename))
+    return -1;
   self->filename = filename;
   return 0;
 }
@@ -23,7 +24,8 @@ static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
 static PyObject *Parser_instrument(Parser *self, PyObject *args) {
   const char *functionName;
 
-  if (!PyArg_ParseTuple(args, "s", &functionName)) return NULL;
+  if (!PyArg_ParseTuple(args, "s", &functionName))
+    return NULL;
   ControlDependency cfg = instrument(self->filename, functionName);
   PyObject *list = PyList_New(0);
   for (const auto &i : cfg) {
@@ -40,7 +42,8 @@ static PyObject *Parser_instrument(Parser *self, PyObject *args) {
 static PyObject *Parser_getDecl(Parser *self, PyObject *args) {
   const char *functionName;
 
-  if (!PyArg_ParseTuple(args, "s", &functionName)) return NULL;
+  if (!PyArg_ParseTuple(args, "s", &functionName))
+    return NULL;
   std::tuple<std::string, std::vector<std::string>> ret =
       getDeclaration(self->filename, functionName);
 
@@ -86,9 +89,11 @@ static PyTypeObject *ParserType = NULL;
 
 PyMODINIT_FUNC PyInit_clang(void) {
   ParserType = reinterpret_cast<PyTypeObject *>(PyType_FromSpec(&CAVMTypeSpec));
-  if (PyType_Ready(ParserType) < 0) return NULL;
+  if (PyType_Ready(ParserType) < 0)
+    return NULL;
   PyObject *m = PyModule_Create(&module);
-  if (!m) return NULL;
+  if (!m)
+    return NULL;
   Py_INCREF(ParserType);
   PyModule_AddObject(m, "Parser", reinterpret_cast<PyObject *>(ParserType));
   return m;

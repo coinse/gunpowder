@@ -1,12 +1,12 @@
 // Copyright 2017 COINSE Lab.
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/OperationKinds.h"
@@ -31,21 +31,20 @@
 #include "ControlDependency.h"
 #include "FrontendActions.h"
 
-
 static llvm::cl::OptionCategory Category("options");
 
 ControlDependency instrument(StringRef fileName, StringRef functionName) {
   int argc = 3;
-  const char *argv[] = { "clang", "input.c", "--" };
+  const char *argv[] = {"clang", "input.c", "--"};
 
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
   std::vector<std::string> Sources;
   Sources.push_back(fileName);
 
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-	std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>> f;
-	f = std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>>(
-		new ActionFactory<MyFrontendAction, ControlDependency>(functionName));
+  std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>> f;
+  f = std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>>(
+      new ActionFactory<MyFrontendAction, ControlDependency>(functionName));
   Tool.run(f.get());
 
   return (f.get())->getResult();
@@ -53,16 +52,16 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
 
 Decl getDeclaration(StringRef fileName, StringRef functionName) {
   int argc = 3;
-  const char *argv[] = { "clang", "input.c", "--" };
+  const char *argv[] = {"clang", "input.c", "--"};
 
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
   std::vector<std::string> Sources;
   Sources.push_back(fileName);
 
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-	std::unique_ptr<ActionFactory<DeclarationAction, Decl>> f;
-	f = std::unique_ptr<ActionFactory<DeclarationAction, Decl>>(
-		new ActionFactory<DeclarationAction, Decl>(functionName));
+  std::unique_ptr<ActionFactory<DeclarationAction, Decl>> f;
+  f = std::unique_ptr<ActionFactory<DeclarationAction, Decl>>(
+      new ActionFactory<DeclarationAction, Decl>(functionName));
   Tool.run(f.get());
 
   return (f.get())->getResult();
@@ -70,12 +69,13 @@ Decl getDeclaration(StringRef fileName, StringRef functionName) {
 
 void getFunctions(StringRef fileName) {
   int argc = 3;
-  const char *argv[] = { "clang", "input.c", "--" };
+  const char *argv[] = {"clang", "input.c", "--"};
 
   clang::tooling::CommonOptionsParser OptionsParser(argc, argv, Category);
   std::vector<std::string> Sources;
   Sources.push_back(fileName);
 
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-  Tool.run(clang::tooling::newFrontendActionFactory<FunctionListAction>().get());
+  Tool.run(
+      clang::tooling::newFrontendActionFactory<FunctionListAction>().get());
 }

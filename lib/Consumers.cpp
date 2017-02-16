@@ -10,7 +10,6 @@ bool MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
     if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
       if (f->getName() == target) {
         // Traverse the declaration using our AST visitor.
-        (*b)->dumpColor();
         Visitor.TraverseDecl(*b);
       }
     }
@@ -28,7 +27,6 @@ bool MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
 bool DeclarationConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
   for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
        ++b) {
-    // (*b)->dump();
     if (clang::NamedDecl *d = clang::dyn_cast<clang::NamedDecl>(*b)) {
       if (d->getName() == target) {
         if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {

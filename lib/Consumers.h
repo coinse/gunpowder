@@ -14,7 +14,6 @@
 
 typedef std::tuple<std::string, std::vector<std::string>> Decl;
 
-
 class MyASTConsumer : public clang::ASTConsumer {
 public:
   MyASTConsumer(StringRef functionName, clang::Rewriter &R,

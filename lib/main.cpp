@@ -1,7 +1,7 @@
 // Copyright 2017 COINSE Lab.
-#include <iostream>
 #include "./buildcfg.cpp"
 #include "llvm/Support/raw_ostream.h"
+#include <iostream>
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
