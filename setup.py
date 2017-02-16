@@ -79,7 +79,7 @@ if platform.system() != 'Darwin':
 
 module = Extension(
     'cavm.clang',
-    sources=['lib/python_binding.cpp'],
+    sources=['lib/python_binding.cpp', 'lib/Consumers.cpp', 'lib/ControlDependency.cpp', 'lib/FrontendActions.cpp'],
     depends=['lib/buildcfg.cpp', 'lib/consumer.cpp'],
     include_dirs=CLANG_INCLUDES + include_dirs,
     library_dirs=lib_dirs,
