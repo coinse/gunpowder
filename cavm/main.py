@@ -44,7 +44,10 @@ def unroll_input(c_type, parser, inputs, decls):
         inputs.append('long')
     elif c_type in ['unsigned long', 'unsigned long int']:
         inputs.append('unsigned long')
-    elif c_type in ['long long', 'signed long long', 'long long int', 'signed long long int']:
+    elif c_type in [
+            'long long', 'signed long long', 'long long int',
+            'signed long long int'
+    ]:
         inputs.append('long long')
     elif c_type in ['unsigned long long', 'unsigned long long int']:
         inputs.append('unsigned long long')
