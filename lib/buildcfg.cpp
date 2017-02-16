@@ -356,12 +356,11 @@ class MyASTConsumer : public clang::ASTConsumer {
 
 class MyFrontendAction : public clang::ASTFrontendAction {
 public:
-	MyFrontendAction(StringRef fileName, StringRef funcName, ControlDependency &out)
-		: fileName(fileName), funcName(funcName), out(out) {}
+	MyFrontendAction(StringRef funcName, ControlDependency &out)
+		: funcName(funcName), out(out) {}
 	virtual void EndSourceFileAction() {
-		const clang::RewriteBuffer *RewriteBuf =
-				r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
-    std::string f = std::string(fileName);
+		const clang::RewriteBuffer *RewriteBuf = r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
+    std::string f = std::string(this->getCurrentFile());
     std::string filename = f.substr(0, f.find_last_of('.'));
     filename = filename + ".inst.cpp";
     std::ofstream out(filename.c_str());
@@ -376,31 +375,17 @@ public:
 		return std::unique_ptr<clang::ASTConsumer>(new MyASTConsumer(funcName, r, out));
 	}
 private:
-	StringRef fileName;
 	StringRef funcName;
   ControlDependency &out;
 	clang::Rewriter r;
 };
 
-template <typename T>
-class MyFrontendActionFactory : public clang::tooling::FrontendActionFactory {
-public:
-	MyFrontendActionFactory(StringRef fileName, StringRef funcName)
-		: fileName(fileName), funcName(funcName) {}
-	clang::FrontendAction *create() override { return new MyFrontendAction(fileName, funcName, result); }
-  T getResult() { return result; }
-private:
-	StringRef fileName;
-	StringRef funcName;
-  T result;
-};
-
-template <typename T>
+template <typename C, typename T>
 class ActionFactory : public clang::tooling::FrontendActionFactory {
 public:
 	ActionFactory(StringRef funcName)
 		: funcName(funcName) {}
-	clang::FrontendAction *create() override { return new DeclarationAction(funcName, result); }
+	clang::FrontendAction *create() override { return new C(funcName, result); }
   T getResult() { return result; }
 private:
 	StringRef funcName;
@@ -418,9 +403,9 @@ ControlDependency instrument(StringRef fileName, StringRef functionName) {
   Sources.push_back(fileName);
 
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-	std::unique_ptr<MyFrontendActionFactory<ControlDependency>> f;
-	f = std::unique_ptr<MyFrontendActionFactory<ControlDependency>>(
-		new MyFrontendActionFactory<ControlDependency>(fileName, functionName));
+	std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>> f;
+	f = std::unique_ptr<ActionFactory<MyFrontendAction, ControlDependency>>(
+		new ActionFactory<MyFrontendAction, ControlDependency>(functionName));
   Tool.run(f.get());
 
   return (f.get())->getResult();
@@ -435,9 +420,9 @@ Decl getDeclaration(StringRef fileName, StringRef functionName) {
   Sources.push_back(fileName);
 
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), Sources);
-	std::unique_ptr<ActionFactory<Decl>> f;
-	f = std::unique_ptr<ActionFactory<Decl>>(
-		new ActionFactory<Decl>(functionName));
+	std::unique_ptr<ActionFactory<DeclarationAction, Decl>> f;
+	f = std::unique_ptr<ActionFactory<DeclarationAction, Decl>>(
+		new ActionFactory<DeclarationAction, Decl>(functionName));
   Tool.run(f.get());
 
   return (f.get())->getResult();
