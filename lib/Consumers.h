@@ -13,7 +13,6 @@
 #include "ControlDependency.h"
 #include "Type.h"
 
-
 class MyASTConsumer : public clang::ASTConsumer {
 public:
   MyASTConsumer(llvm::StringRef functionName, clang::Rewriter &R,

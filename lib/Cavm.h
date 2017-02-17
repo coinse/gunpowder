@@ -10,8 +10,7 @@ static llvm::cl::OptionCategory Category("options");
 
 class Cavm {
 public:
-  Cavm(std::string fileName) :
-    fileName(fileName) {
+  Cavm(std::string fileName) : fileName(fileName) {
     int argc = 3;
     const char *argv[] = {"clang", "input.c", "--"};
 

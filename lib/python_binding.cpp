@@ -8,8 +8,7 @@
 #include "Cavm.h"
 
 struct Parser {
-  PyObject_HEAD
-  Cavm *cavm;
+  PyObject_HEAD Cavm *cavm;
 };
 
 static void Parser_dealloc(Parser *self) {
