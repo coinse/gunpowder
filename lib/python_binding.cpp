@@ -4,27 +4,33 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include "./buildcfg.cpp"
+
+#include "Cavm.h"
 
 struct Parser {
-  PyObject_HEAD std::string filename;
+  PyObject_HEAD Cavm *cavm;
 };
 
-static void Parser_dealloc(Parser *self) {}
+static void Parser_dealloc(Parser *self) {
+  if (self->cavm)
+    delete self->cavm;
+}
 
 static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
   const char *filename;
 
-  if (!PyArg_ParseTuple(args, "s", &filename)) return -1;
-  self->filename = filename;
+  if (!PyArg_ParseTuple(args, "s", &filename))
+    return -1;
+  self->cavm = new Cavm(filename);
   return 0;
 }
 
 static PyObject *Parser_instrument(Parser *self, PyObject *args) {
   const char *functionName;
 
-  if (!PyArg_ParseTuple(args, "s", &functionName)) return NULL;
-  ControlDependency cfg = instrument(self->filename, functionName);
+  if (!PyArg_ParseTuple(args, "s", &functionName))
+    return NULL;
+  ControlDependency cfg = self->cavm->instrument(functionName);
   PyObject *list = PyList_New(0);
   for (const auto &i : cfg) {
     PyObject *item = PyTuple_New(3);
@@ -40,9 +46,10 @@ static PyObject *Parser_instrument(Parser *self, PyObject *args) {
 static PyObject *Parser_getDecl(Parser *self, PyObject *args) {
   const char *functionName;
 
-  if (!PyArg_ParseTuple(args, "s", &functionName)) return NULL;
+  if (!PyArg_ParseTuple(args, "s", &functionName))
+    return NULL;
   std::tuple<std::string, std::vector<std::string>> ret =
-      getDeclaration(self->filename, functionName);
+      self->cavm->getDeclaration(functionName);
 
   PyObject *tp = PyTuple_New(2);
   PyTuple_SetItem(tp, 0, PyUnicode_FromString(std::get<0>(ret).c_str()));
@@ -55,8 +62,8 @@ static PyObject *Parser_getDecl(Parser *self, PyObject *args) {
   return tp;
 }
 
-static PyObject *Parser_getFunctions(Parser *self) {
-  getFunctions(self->filename);
+static PyObject *Parser_printFunctions(Parser *self) {
+  self->cavm->printFunctions();
   return Py_None;
 }
 
@@ -65,7 +72,7 @@ static PyMethodDef methods[] = {
      "Instrument given c code."},
     {"get_decl", (PyCFunction)Parser_getDecl, METH_VARARGS,
      "Get declaration given function."},
-    {"get_functions", (PyCFunction)Parser_getFunctions, METH_NOARGS,
+    {"print_functions", (PyCFunction)Parser_printFunctions, METH_NOARGS,
      "Get list of functions."},
     {NULL}};
 
@@ -86,9 +93,11 @@ static PyTypeObject *ParserType = NULL;
 
 PyMODINIT_FUNC PyInit_clang(void) {
   ParserType = reinterpret_cast<PyTypeObject *>(PyType_FromSpec(&CAVMTypeSpec));
-  if (PyType_Ready(ParserType) < 0) return NULL;
+  if (PyType_Ready(ParserType) < 0)
+    return NULL;
   PyObject *m = PyModule_Create(&module);
-  if (!m) return NULL;
+  if (!m)
+    return NULL;
   Py_INCREF(ParserType);
   PyModule_AddObject(m, "Parser", reinterpret_cast<PyObject *>(ParserType));
   return m;

@@ -158,7 +158,7 @@ def main():
     else:
         print('Specify the target function using -f option.')
         print('Functions in %s:' % args.target)
-        parser.get_functions()
+        parser.print_functions()
 
 
 if __name__ == '__main__':

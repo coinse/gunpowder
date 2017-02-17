@@ -85,10 +85,12 @@ CLANG_LIBS += \
 	-lclangDriver \
 	-lclangEdit \
 	-lclangFrontend \
+	-lclangFrontendTool \
 	-lclangLex \
 	-lclangParse \
 	-lclangSema \
 	-lclangRewrite \
+	-lclangTooling \
 	-lclangSerialization
 
 ifneq ($(UNAME),Darwin)
@@ -104,16 +106,30 @@ SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
 DEPS = $(SRCDIR)/consumer.cpp $(SRCDIR)/buildcfg.cpp
-OBJS = $(SRCDIR)/main.o
+OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o $(BUILDDIR)/main.o
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
 all: $(TARGET)
-
-$(TARGET): $(SRCS) $(DEPS)
 	@`[ -d $(BUILDDIR) ] || $(MKDIR) $(BUILDDIR)`
-	$(CXX) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< \
-		$(CLANG_LIBS) $(LLVM_LDFLAGS) -o $@
+
+$(TARGET): $(OBJS) 
+	$(CXX) $(CLANG_LIBS) $(LLVM_LDFLAGS) $^ -o $@
+
+$(BUILDDIR)/main.o: $(SRCDIR)/main.cpp 
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+$(BUILDDIR)/Cavm.o: $(SRCDIR)/Cavm.cpp 
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+$(BUILDDIR)/FrontendActions.o: $(SRCDIR)/FrontendActions.cpp 
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+$(BUILDDIR)/Consumers.o: $(SRCDIR)/Consumers.cpp
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+$(BUILDDIR)/ControlDependency.o: $(SRCDIR)/ControlDependency.cpp
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
 python:
 	python3 setup.py build_ext -b .
@@ -121,6 +137,7 @@ python:
 .PHONY: clean
 clean:
 	rm -rf $(OBJS) $(TARGET)
+	rm cavm/clang.*.so
 
 .PHONY: test
 test:
