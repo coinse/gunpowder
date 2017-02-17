@@ -33,6 +33,7 @@ if not os.environ.get('BINARY_DIR_PATH'):
     raise SystemExit('BINARY_DIR_PATH is unset.')
 BINARY_DIR_PATH = os.environ['BINARY_DIR_PATH']
 os.environ['CC'] = BINARY_DIR_PATH + '/bin/clang++'
+os.environ['CXX'] = BINARY_DIR_PATH + '/bin/clang++'
 
 LLVM_SRC_PATH = BINARY_DIR_PATH
 LLVM_BUILD_PATH = BINARY_DIR_PATH + '/bin'
@@ -61,19 +62,19 @@ CLANG_INCLUDES = [
 ]
 
 CLANG_LIBS = [
-    'clangAST',
-    'clangAnalysis',
-    'clangBasic',
-    'clangDriver',
-    'clangEdit',
-    'clangFrontend',
-    'clangFrontendTool',
-    'clangLex',
-    'clangParse',
-    'clangSema',
-    'clangRewrite',
-    'clangTooling',
-    'clangSerialization',
+    '-lclangAST',
+    '-lclangAnalysis',
+    '-lclangBasic',
+    '-lclangDriver',
+    '-lclangEdit',
+    '-lclangFrontend',
+    '-lclangFrontendTool',
+    '-lclangLex',
+    '-lclangParse',
+    '-lclangSema',
+    '-lclangRewrite',
+    '-lclangTooling',
+    '-lclangSerialization',
 ]
 if platform.system() != 'Darwin':
     CLANG_LIBS = ['-Wl,--start-group'] + CLANG_LIBS + ['-Wl,--end-group']
@@ -84,9 +85,8 @@ module = Extension(
     depends=[],
     include_dirs=CLANG_INCLUDES + include_dirs,
     library_dirs=lib_dirs,
-    libraries=CLANG_LIBS,
     extra_compile_args=extra,
-    extra_link_args=libs+extra_link)
+    extra_link_args=CLANG_LIBS+libs+extra_link)
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
