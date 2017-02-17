@@ -206,25 +206,16 @@ def c_type_factory(raw_type):
 
 
 class CVariable:
-    def __init__(self, c_type):
-        self._var = None
+    def __init__(self, c_type, minimum = float('-inf'), maximum = float('inf')):
         self._type = c_type
-        self._min = c_type.get_min()
-        self._max = c_type.get_max()
-
-    def set_min(self, minimum):
-        self._min = max(self._min, minimum)
-
-    def set_max(self, maximum):
-        self._max = min(self._max, maximum)
-
-    def get_var(self):
-        return self._var
- 
-    def init_random(self):
+        self._min = max(c_type.get_min(), minimum)
+        self._max = min(c_type.get_max(), maximum)
         if self._type.is_integer():
             self._var = random.randint(self._min, self._max)
         elif self._type.is_floating():
             self._var = round(random.uniform(self._min, self._max), c_type.get_prec())
         else:
             raise NotImplementedError
+
+    def get_var(self):
+        return self._var
