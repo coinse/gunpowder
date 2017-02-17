@@ -1,5 +1,5 @@
 # Written in 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
-# Written in 2017 by Byeong Hyeon You <byou@kaist.ac.kr>
+# Written in 2017 by Byeonghyeon You <byou@kaist.ac.kr>
 """CAVM
   $ cavm file [options]
 """
