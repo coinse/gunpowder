@@ -8,15 +8,15 @@
 #include "clang/Analysis/CFG.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
-#include "clang/Tooling/Tooling.h"
+#include "llvm/ADT/StringRef.h"
 
 #include "ControlDependency.h"
+#include "Type.h"
 
-typedef std::tuple<std::string, std::vector<std::string>> Decl;
 
 class MyASTConsumer : public clang::ASTConsumer {
 public:
-  MyASTConsumer(StringRef functionName, clang::Rewriter &R,
+  MyASTConsumer(llvm::StringRef functionName, clang::Rewriter &R,
                 ControlDependency &out)
       : target(functionName), Visitor(R, out) {}
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR);
@@ -24,18 +24,18 @@ public:
   MyASTVisitor Visitor;
 
 private:
-  StringRef target;
+  llvm::StringRef target;
 };
 
 class DeclarationConsumer : public clang::ASTConsumer {
 public:
-  explicit DeclarationConsumer(StringRef functionName, Decl &out)
+  explicit DeclarationConsumer(llvm::StringRef functionName, Decl &out)
       : target(functionName), decl(out) {}
 
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR);
 
 private:
-  StringRef target;
+  llvm::StringRef target;
   Decl &decl;
 };
 

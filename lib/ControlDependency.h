@@ -4,7 +4,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
+#include "Type.h"
 
 class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
 public:

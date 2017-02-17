@@ -106,7 +106,7 @@ SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
 DEPS = $(SRCDIR)/consumer.cpp $(SRCDIR)/buildcfg.cpp
-OBJS = $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o $(BUILDDIR)/main.o
+OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o $(BUILDDIR)/main.o
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
@@ -117,6 +117,9 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CLANG_LIBS) $(LLVM_LDFLAGS) $^ -o $@
 
 $(BUILDDIR)/main.o: $(SRCDIR)/main.cpp 
+	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+$(BUILDDIR)/Cavm.o: $(SRCDIR)/Cavm.cpp 
 	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
 $(BUILDDIR)/FrontendActions.o: $(SRCDIR)/FrontendActions.cpp 
