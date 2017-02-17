@@ -13,7 +13,7 @@ from cffi import FFI
 from cavm.clang import Parser
 import cavm.avm
 from cavm.evaluation import ObjFunc
-
+import cavm.Ctype
 
 def get_dep_map(dep_list):
     """get dependecy map from list"""
@@ -26,40 +26,7 @@ def get_dep_map(dep_list):
 
 def unroll_input(c_type, parser, inputs, decls):
     """flatten the input"""
-    if c_type == 'void':
-        raise NotImplementedError
-    elif c_type in ['char', 'signed char']:
-        inputs.append('char')
-    elif c_type in ['unsigned char']:
-        inputs.append('unsigned char')
-    elif c_type in ['short', 'signed short', 'short int', 'signed short int']:
-        inputs.append('short')
-    elif c_type in ['unsigned short', 'unsigned short int']:
-        inputs.append('unsigned short')
-    elif c_type in ['int', 'signed', 'signed int']:
-        inputs.append('int')
-    elif c_type in ['unsigned', 'unsigned int']:
-        inputs.append('unsigned int')
-    elif c_type in ['long', 'signed long', 'long int', 'signed long int']:
-        inputs.append('long')
-    elif c_type in ['unsigned long', 'unsigned long int']:
-        inputs.append('unsigned long')
-    elif c_type in [
-            'long long', 'signed long long', 'long long int',
-            'signed long long int'
-    ]:
-        inputs.append('long long')
-    elif c_type in ['unsigned long long', 'unsigned long long int']:
-        inputs.append('unsigned long long')
-    elif c_type == 'float':
-        inputs.append('float')
-    elif c_type == 'double':
-        inputs.append('double')
-    elif c_type == 'long double':
-        inputs.append('long double')
-    elif c_type == '_Bool':
-        inputs.append('_Bool')
-    elif c_type[-1:] == '*':
+    if c_type[-1:] == '*':
         unroll_input(c_type[:-1].strip(), parser, inputs, decls)
     elif c_type[:6] == 'struct':
         decl, fields = parser.get_decl(c_type[6:].strip())
@@ -67,7 +34,7 @@ def unroll_input(c_type, parser, inputs, decls):
         for field in fields:
             unroll_input(field, parser, inputs, decls)
     else:
-        raise NotImplementedError
+        inputs.append(cavm.Ctype.c_type_factory(c_type).get_name())
 
 
 def unroll_inputs(params, parser):
