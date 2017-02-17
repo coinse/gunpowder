@@ -13,7 +13,6 @@ from cffi import FFI
 from cavm.clang import Parser
 import cavm.avm
 from cavm.evaluation import ObjFunc
-import cavm.Ctype
 
 def get_dep_map(dep_list):
     """get dependecy map from list"""
@@ -34,7 +33,7 @@ def unroll_input(c_type, parser, inputs, decls):
         for field in fields:
             unroll_input(field, parser, inputs, decls)
     else:
-        inputs.append(cavm.Ctype.c_type_factory(c_type).get_name())
+        inputs.append(cavm.Ctype.c_type_factory(c_type))
 
 
 def unroll_inputs(params, parser):

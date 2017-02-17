@@ -1,3 +1,4 @@
+import random
 
 class CType:
     def __init__(self):
@@ -191,7 +192,7 @@ def c_type_factory(raw_type):
             'signed long long int']:
         return CTypeLongLong()
     elif raw_type in ['unsigned long long', 'unsigned long long int']:
-        return CTypeULongLong
+        return CTypeULongLong()
     elif raw_type == 'float':
         return CTypeFloat()
     elif raw_type == 'double':
@@ -202,3 +203,28 @@ def c_type_factory(raw_type):
         return CTypeBool()
     else:
         raise NotImplementedError
+
+
+class CVariable:
+    def __init__(self, c_type):
+        self._var = None
+        self._type = c_type
+        self._min = c_type.get_min()
+        self._max = c_type.get_max()
+
+    def set_min(self, minimum):
+        self._min = max(self._min, minimum)
+
+    def set_max(self, maximum):
+        self._max = min(self._max, maximum)
+
+    def get_var(self):
+        return self._var
+ 
+    def init_random(self):
+        if self._type.is_integer():
+            self._var = random.randint(self._min, self._max)
+        elif self._type.is_floating():
+            self._var = round(random.uniform(self._min, self._max), c_type.get_prec())
+        else:
+            raise NotImplementedError
