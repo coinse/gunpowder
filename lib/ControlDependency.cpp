@@ -89,7 +89,9 @@ void MyASTVisitor::insertbranchlog(clang::Expr *Cond, int stmtid) {
     S << "inst(" << stmtid << ", ";
     convertCompositePredicate(Cond, S, TheRewriter);
     S << ")";
-    TheRewriter.ReplaceText(Cond->getSourceRange(), S.str());
+    TheRewriter.ReplaceText(
+        (TheRewriter.getSourceMgr()).getExpansionRange(Cond->getSourceRange()),
+        S.str());
   }
 }
 
