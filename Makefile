@@ -106,14 +106,14 @@ SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
 DEPS = $(SRCDIR)/consumer.cpp $(SRCDIR)/buildcfg.cpp
-OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o $(BUILDDIR)/main.o
+OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
 all: $(TARGET)
 	@`[ -d $(BUILDDIR) ] || $(MKDIR) $(BUILDDIR)`
 
-$(TARGET): $(OBJS) 
+$(TARGET): $(BUILDDIR)/main.o $(OBJS) 
 	$(CXX) $(CLANG_LIBS) $(LLVM_LDFLAGS) $^ -o $@
 
 $(BUILDDIR)/main.o: $(SRCDIR)/main.cpp 
@@ -142,3 +142,17 @@ clean:
 .PHONY: test
 test:
 	python3 test/test.py -v
+
+TESTDIR = test
+
+GTESTFLAGS = -isystem googletest/googletest/include
+CAVM_INCLUDES = -I./lib
+
+$(TESTDIR)/gtest_main.a:
+	cd $(TESTDIR); make gtest_main.a
+
+$(TESTDIR)/CavmTest.o: $(TESTDIR)/CavmTest.cpp
+	$(CXX) -c $(GTESTFLAGS) $(CAVM_INCLUDES) $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
+
+clangtest: $(TESTDIR)/CavmTest.o $(TESTDIR)/gtest_main.a $(OBJS)
+	$(CXX) $(GTESTFLAGS) $(CLANG_LIBS) $(LLVM_LDFLAGS) $^ -o $@
