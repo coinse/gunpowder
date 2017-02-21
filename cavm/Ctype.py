@@ -6,7 +6,6 @@ class CType:
         self._min = None
         self._max = None
         self._step = 1
-        self._precision = 0
 
     def get_name(self):
         return self._name
@@ -20,9 +19,6 @@ class CType:
     def get_step(self):
         return self._step
 
-    def get_prec(self):
-        return self._precision
-
     def set_min(self, val):
         self._min = max(__self._min, val)
 
@@ -32,10 +28,6 @@ class CType:
     def set_step(self, step):
         self._step = step
 
-    def set_prec(self, prec):
-        self._precicision = prec
-        set_step(10 ** -prec)
-
     def is_floating(self):
         return False
 
@@ -43,8 +35,9 @@ class CType:
         return False
 
 class CTypeChar(CType):
+    _name = 'char'
+    _repr = ['char', 'signed char']
     def __init__(self):
-        self._name = 'char'
         self._min = -128
         self._max = 127
 
@@ -52,8 +45,9 @@ class CTypeChar(CType):
         return True
 
 class CTypeUChar(CType):
+    _name = 'unsigned char'
+    _repr = ['unsigned char']
     def __init__(self):
-        self._name = 'unsigned char'
         self._min = 0
         self._max = 255
 
@@ -61,8 +55,9 @@ class CTypeUChar(CType):
         return True
 
 class CTypeShort(CType):
+    _name = 'short'
+    _repr = ['short', 'signed short', 'short int', 'signed short int']
     def __init__(self):
-        self._name = 'short'
         self._min = -32768
         self._max = 32767
 
@@ -70,8 +65,9 @@ class CTypeShort(CType):
         return True
 
 class CTypeUShort(CType):
+    _name = 'unsigned short'
+    _repr = ['unsigned short', 'unsigned short int']
     def __init__(self):
-        self._name = 'unsigned short'
         self._min = 0
         self._max = 65535
 
@@ -79,8 +75,9 @@ class CTypeUShort(CType):
         return True
 
 class CTypeInt(CType):
+    _name = 'int'
+    _repr = ['int', 'signed', 'signed int']
     def __init__(self):
-        self._name = 'int'
         self._min = -2147483648
         self._max = 2147483647
 
@@ -88,8 +85,9 @@ class CTypeInt(CType):
         return True
 
 class CTypeUInt(CType):
+    _name = 'unsigned int'
+    _repr = ['unsigned', 'unsigned int']
     def __init__(self):
-        self._name = 'unsigned int'
         self._min = 0
         self._max = 4294967295
 
@@ -97,8 +95,9 @@ class CTypeUInt(CType):
         return True
 
 class CTypeLong(CType):
+    _name = 'long'
+    _repr = ['long', 'signed long', 'long int', 'signed long int']
     def __init__(self):
-        self._name = 'long'
         self._min = -2147483648
         self._max = 2147483637
 
@@ -106,8 +105,9 @@ class CTypeLong(CType):
         return True
 
 class CTypeULong(CType):
+    _name = 'unsigned long'
+    _repr = ['unsigned long', 'unsigned long int']
     def __init__(self):
-        self._name = 'unsigned long'
         self._min = 0
         self._max = 4294967295
 
@@ -115,8 +115,10 @@ class CTypeULong(CType):
         return True
 
 class CTypeLongLong(CType):
+    _name = 'long long'
+    _repr = ['long long', 'signed long long', 'long long int',
+            'signed long long int']
     def __init__(self):
-        self._name = 'long long'
         self._min = -9223372036854775808
         self._max = 9223372036854775807
 
@@ -124,8 +126,9 @@ class CTypeLongLong(CType):
         return True
 
 class CTypeULongLong(CType):
+    _name = 'unsigned long long'
+    _repr = ['unsigned long long', 'unsigned long long int']
     def __init__(self):
-        self._name = 'unsigned long long'
         self._min = 0
         self._max = 18446744073709551615
 
@@ -133,74 +136,73 @@ class CTypeULongLong(CType):
         return True
 
 class CTypeFloat(CType):
+    _name = 'float'
+    _repr = ['float']
     def __init__(self):
-        self._name = 'float'
         self._min = float('-inf')
         self._max = float('inf')
+
+    def get_prec(self):
+        return self._precision
+
+    def set_prec(self, prec):
+        self._precicision = prec
+        set_step(10 ** -prec)
 
     def is_floating(self):
         return True
 
 class CTypeDouble(CType):
+    _name = 'double'
+    _repr = ['double']
     def __init__(self):
-        self._name = 'double'
         self._min = float('-inf')
         self._max = float('inf')
+        self._precision = 1
+
+    def get_prec(self):
+        return self._precision
+
+    def set_prec(self, prec):
+        self._precicision = prec
+        set_step(10 ** -prec)
 
     def is_floating(self):
         return True
 
 class CTypeLongDouble(CType):
+    _name = 'long double'
+    _repr = ['long double']
     def __init__(self):
-        self._name = 'long double'
         self._min = float('-inf')
         self._max = float('inf')
+        self._precision = 1
+
+    def get_prec(self):
+        return self._precision
+
+    def set_prec(self, prec):
+        self._precicision = prec
+        set_step(10 ** -prec)
 
     def is_floating(self):
         return True
 
 class CTypeBool(CType):
+    _name = '_Bool'
+    _repr = ['_Bool']
     def __init__(self):
-        self._name = '_Bool'
         self._min = 0
         self._max = 1
+        self._precision = 1
 
     def is_integer(self):
         return True
 
 def c_type_factory(raw_type):
-    if raw_type == 'void':
-        raise NotImplementedError
-    elif raw_type in ['char', 'signed char']:
-        return CTypeChar()
-    elif raw_type in ['unsigned char']:
-        return CTypeUChar()
-    elif raw_type in ['short', 'signed short', 'short int', 'signed short int']:
-        return CTypeShort()
-    elif raw_type in ['unsigned short', 'unsigned short int']:
-        return CTypeUShort()
-    elif raw_type in ['int', 'signed', 'signed int']:
-        return CTypeInt()
-    elif raw_type in ['unsigned', 'unsigned int']:
-        return CTypeUInt()
-    elif raw_type in ['long', 'signed long', 'long int', 'signed long int']:
-        return CTypeLong()
-    elif raw_type in ['unsigned long', 'unsigned long int']:
-        return CTypeULong()
-    elif raw_type in [
-            'long long', 'signed long long', 'long long int',
-            'signed long long int']:
-        return CTypeLongLong()
-    elif raw_type in ['unsigned long long', 'unsigned long long int']:
-        return CTypeULongLong()
-    elif raw_type == 'float':
-        return CTypeFloat()
-    elif raw_type == 'double':
-        return CTypeDouble()
-    elif raw_type == 'long double':
-        return CTypeLongDouble()
-    elif raw_type == '_Bool':
-        return CTypeBool()
+    for type in CType.__subclasses__():
+        if raw_type in type._repr:
+            return type()
     else:
         raise NotImplementedError
 
