@@ -1,5 +1,6 @@
 import random
 
+
 class CType:
     def __init__(self):
         self._min = None
@@ -30,8 +31,10 @@ class CType:
     def is_integer(self):
         return False
 
+
 class CTypeChar(CType):
     _repr = ['char', 'signed char']
+
     def __init__(self):
         self._min = -128
         self._max = 127
@@ -39,8 +42,10 @@ class CTypeChar(CType):
     def is_integer(self):
         return True
 
+
 class CTypeUChar(CType):
     _repr = ['unsigned char']
+
     def __init__(self):
         self._min = 0
         self._max = 255
@@ -48,8 +53,10 @@ class CTypeUChar(CType):
     def is_integer(self):
         return True
 
+
 class CTypeShort(CType):
     _repr = ['short', 'signed short', 'short int', 'signed short int']
+
     def __init__(self):
         self._min = -32768
         self._max = 32767
@@ -57,8 +64,10 @@ class CTypeShort(CType):
     def is_integer(self):
         return True
 
+
 class CTypeUShort(CType):
     _repr = ['unsigned short', 'unsigned short int']
+
     def __init__(self):
         self._min = 0
         self._max = 65535
@@ -66,8 +75,10 @@ class CTypeUShort(CType):
     def is_integer(self):
         return True
 
+
 class CTypeInt(CType):
     _repr = ['int', 'signed', 'signed int']
+
     def __init__(self):
         self._min = -2147483648
         self._max = 2147483647
@@ -75,8 +86,10 @@ class CTypeInt(CType):
     def is_integer(self):
         return True
 
+
 class CTypeUInt(CType):
     _repr = ['unsigned', 'unsigned int']
+
     def __init__(self):
         self._min = 0
         self._max = 4294967295
@@ -84,8 +97,10 @@ class CTypeUInt(CType):
     def is_integer(self):
         return True
 
+
 class CTypeLong(CType):
     _repr = ['long', 'signed long', 'long int', 'signed long int']
+
     def __init__(self):
         self._min = -2147483648
         self._max = 2147483637
@@ -93,8 +108,10 @@ class CTypeLong(CType):
     def is_integer(self):
         return True
 
+
 class CTypeULong(CType):
     _repr = ['unsigned long', 'unsigned long int']
+
     def __init__(self):
         self._min = 0
         self._max = 4294967295
@@ -102,9 +119,13 @@ class CTypeULong(CType):
     def is_integer(self):
         return True
 
+
 class CTypeLongLong(CType):
-    _repr = ['long long', 'signed long long', 'long long int',
-            'signed long long int']
+    _repr = [
+        'long long', 'signed long long', 'long long int',
+        'signed long long int'
+    ]
+
     def __init__(self):
         self._min = -9223372036854775808
         self._max = 9223372036854775807
@@ -112,8 +133,10 @@ class CTypeLongLong(CType):
     def is_integer(self):
         return True
 
+
 class CTypeULongLong(CType):
     _repr = ['unsigned long long', 'unsigned long long int']
+
     def __init__(self):
         self._min = 0
         self._max = 18446744073709551615
@@ -121,8 +144,10 @@ class CTypeULongLong(CType):
     def is_integer(self):
         return True
 
+
 class CTypeFloat(CType):
     _repr = ['float']
+
     def __init__(self):
         self._min = float('-inf')
         self._max = float('inf')
@@ -132,13 +157,15 @@ class CTypeFloat(CType):
 
     def set_prec(self, prec):
         self._precicision = prec
-        set_step(10 ** -prec)
+        set_step(10**-prec)
 
     def is_floating(self):
         return True
+
 
 class CTypeDouble(CType):
     _repr = ['double']
+
     def __init__(self):
         self._min = float('-inf')
         self._max = float('inf')
@@ -149,13 +176,15 @@ class CTypeDouble(CType):
 
     def set_prec(self, prec):
         self._precicision = prec
-        set_step(10 ** -prec)
+        set_step(10**-prec)
 
     def is_floating(self):
         return True
+
 
 class CTypeLongDouble(CType):
     _repr = ['long double']
+
     def __init__(self):
         self._min = float('-inf')
         self._max = float('inf')
@@ -166,13 +195,15 @@ class CTypeLongDouble(CType):
 
     def set_prec(self, prec):
         self._precicision = prec
-        set_step(10 ** -prec)
+        set_step(10**-prec)
 
     def is_floating(self):
         return True
 
+
 class CTypeBool(CType):
     _repr = ['_Bool']
+
     def __init__(self):
         self._min = 0
         self._max = 1
@@ -180,6 +211,7 @@ class CTypeBool(CType):
 
     def is_integer(self):
         return True
+
 
 def c_type_factory(raw_type):
     for type in CType.__subclasses__():
@@ -190,14 +222,15 @@ def c_type_factory(raw_type):
 
 
 class CVariable:
-    def __init__(self, c_type, minimum = float('-inf'), maximum = float('inf')):
+    def __init__(self, c_type, minimum=float('-inf'), maximum=float('inf')):
         self._type = c_type
         self._min = max(c_type.get_min(), minimum)
         self._max = min(c_type.get_max(), maximum)
         if self._type.is_integer():
             self._var = random.randint(self._min, self._max)
         elif self._type.is_floating():
-            self._var = round(random.uniform(self._min, self._max), c_type.get_prec())
+            self._var = round(
+                random.uniform(self._min, self._max), c_type.get_prec())
         else:
             raise NotImplementedError
 
@@ -205,4 +238,4 @@ class CVariable:
         return self._var
 
     def get_typeinfo(self):
-        return {'type': self._type, 'min':self._min, 'max':self._max}
+        return {'type': self._type, 'min': self._min, 'max': self._max}

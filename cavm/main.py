@@ -14,6 +14,7 @@ from cavm.clang import Parser
 import cavm.avm
 from cavm.evaluation import ObjFunc
 
+
 def get_dep_map(dep_list):
     """get dependecy map from list"""
     dep_map = {}
