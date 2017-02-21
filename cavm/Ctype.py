@@ -2,14 +2,10 @@ import random
 
 class CType:
     def __init__(self):
-        self._name = None
         self._min = None
         self._max = None
         self._step = 1
 
-    def get_name(self):
-        return self._name
-    
     def get_min(self):
         return self._min
 
@@ -35,7 +31,6 @@ class CType:
         return False
 
 class CTypeChar(CType):
-    _name = 'char'
     _repr = ['char', 'signed char']
     def __init__(self):
         self._min = -128
@@ -45,7 +40,6 @@ class CTypeChar(CType):
         return True
 
 class CTypeUChar(CType):
-    _name = 'unsigned char'
     _repr = ['unsigned char']
     def __init__(self):
         self._min = 0
@@ -55,7 +49,6 @@ class CTypeUChar(CType):
         return True
 
 class CTypeShort(CType):
-    _name = 'short'
     _repr = ['short', 'signed short', 'short int', 'signed short int']
     def __init__(self):
         self._min = -32768
@@ -65,7 +58,6 @@ class CTypeShort(CType):
         return True
 
 class CTypeUShort(CType):
-    _name = 'unsigned short'
     _repr = ['unsigned short', 'unsigned short int']
     def __init__(self):
         self._min = 0
@@ -75,7 +67,6 @@ class CTypeUShort(CType):
         return True
 
 class CTypeInt(CType):
-    _name = 'int'
     _repr = ['int', 'signed', 'signed int']
     def __init__(self):
         self._min = -2147483648
@@ -85,7 +76,6 @@ class CTypeInt(CType):
         return True
 
 class CTypeUInt(CType):
-    _name = 'unsigned int'
     _repr = ['unsigned', 'unsigned int']
     def __init__(self):
         self._min = 0
@@ -95,7 +85,6 @@ class CTypeUInt(CType):
         return True
 
 class CTypeLong(CType):
-    _name = 'long'
     _repr = ['long', 'signed long', 'long int', 'signed long int']
     def __init__(self):
         self._min = -2147483648
@@ -105,7 +94,6 @@ class CTypeLong(CType):
         return True
 
 class CTypeULong(CType):
-    _name = 'unsigned long'
     _repr = ['unsigned long', 'unsigned long int']
     def __init__(self):
         self._min = 0
@@ -115,7 +103,6 @@ class CTypeULong(CType):
         return True
 
 class CTypeLongLong(CType):
-    _name = 'long long'
     _repr = ['long long', 'signed long long', 'long long int',
             'signed long long int']
     def __init__(self):
@@ -126,7 +113,6 @@ class CTypeLongLong(CType):
         return True
 
 class CTypeULongLong(CType):
-    _name = 'unsigned long long'
     _repr = ['unsigned long long', 'unsigned long long int']
     def __init__(self):
         self._min = 0
@@ -136,7 +122,6 @@ class CTypeULongLong(CType):
         return True
 
 class CTypeFloat(CType):
-    _name = 'float'
     _repr = ['float']
     def __init__(self):
         self._min = float('-inf')
@@ -153,7 +138,6 @@ class CTypeFloat(CType):
         return True
 
 class CTypeDouble(CType):
-    _name = 'double'
     _repr = ['double']
     def __init__(self):
         self._min = float('-inf')
@@ -171,7 +155,6 @@ class CTypeDouble(CType):
         return True
 
 class CTypeLongDouble(CType):
-    _name = 'long double'
     _repr = ['long double']
     def __init__(self):
         self._min = float('-inf')
@@ -189,7 +172,6 @@ class CTypeLongDouble(CType):
         return True
 
 class CTypeBool(CType):
-    _name = '_Bool'
     _repr = ['_Bool']
     def __init__(self):
         self._min = 0
@@ -221,3 +203,6 @@ class CVariable:
 
     def get_var(self):
         return self._var
+
+    def get_typeinfo(self):
+        return {'type': self._type, 'min':self._min, 'max':self._max}
