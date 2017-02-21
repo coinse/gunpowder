@@ -34,7 +34,7 @@ def unroll_input(c_type, parser, inputs, decls):
         for field in fields:
             unroll_input(field, parser, inputs, decls)
     else:
-        inputs.append(cavm.Ctype.c_type_factory(c_type))
+        inputs.append(cavm.ctype.c_type_factory(c_type))
 
 
 def unroll_inputs(params, parser):
