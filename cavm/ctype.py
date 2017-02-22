@@ -9,6 +9,7 @@ import random
 
 class CType:
     """C type base class"""
+
     def __init__(self):
         self._min = None
         self._max = None
