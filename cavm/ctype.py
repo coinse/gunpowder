@@ -173,14 +173,6 @@ class CTypeFloat(CType):
         self._max = float('inf')
         self._precision = 1
 
-    def get_prec(self):
-        """get precision"""
-        return self._precision
-
-    def set_prec(self, prec):
-        """set precision"""
-        self._precicision = prec
-
     def is_floating(self):
         return True
 
@@ -195,14 +187,6 @@ class CTypeDouble(CType):
         self._max = float('inf')
         self._precision = 1
 
-    def get_prec(self):
-        """get precision"""
-        return self._precision
-
-    def set_prec(self, prec):
-        """set precision"""
-        self._precicision = prec
-
     def is_floating(self):
         return True
 
@@ -216,14 +200,6 @@ class CTypeLongDouble(CType):
         self._min = float('-inf')
         self._max = float('inf')
         self._precision = 1
-
-    def get_prec(self):
-        """get precision"""
-        return self._precision
-
-    def set_prec(self, prec):
-        """set precision"""
-        self._precicision = prec
 
     def is_floating(self):
         return True
@@ -248,26 +224,3 @@ def c_type_factory(raw_type):
         if raw_type in typeclass._repr:
             return typeclass()
     raise NotImplementedError
-
-
-class CVariable:
-    """This class holds Variable and type and bound information"""
-    def __init__(self, c_type, minimum=float('-inf'), maximum=float('inf')):
-        self._type = c_type
-        self._min = max(c_type.get_min(), minimum)
-        self._max = min(c_type.get_max(), maximum)
-        if self._type.is_integer():
-            self._var = random.randint(self._min, self._max)
-        elif self._type.is_floating():
-            self._var = round(
-                random.uniform(self._min, self._max), c_type.get_prec())
-        else:
-            raise NotImplementedError
-
-    def get_var(self):
-        """return vector variable"""
-        return self._var
-
-    def get_typeinfo(self):
-        """return type, min, and max"""
-        return {'type': self._type, 'min': self._min, 'max': self._max}
