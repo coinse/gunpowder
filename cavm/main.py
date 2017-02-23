@@ -1,5 +1,5 @@
 # Written in 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
-# Written in 2017 by Byeong Hyeon You <byou@kaist.ac.kr>
+# Written in 2017 by Byeonghyeon You <byou@kaist.ac.kr>
 """CAVM
   $ cavm file [options]
 """
@@ -26,9 +26,7 @@ def get_dep_map(dep_list):
 
 def unroll_input(c_type, parser, inputs, decls):
     """flatten the input"""
-    if c_type in ['unsigned int', 'int', 'long', 'float', 'double']:
-        inputs.append(c_type)
-    elif c_type[-1:] == '*':
+    if c_type[-1:] == '*':
         unroll_input(c_type[:-1].strip(), parser, inputs, decls)
     elif c_type[:6] == 'struct':
         decl, fields = parser.get_decl(c_type[6:].strip())
@@ -36,7 +34,7 @@ def unroll_input(c_type, parser, inputs, decls):
         for field in fields:
             unroll_input(field, parser, inputs, decls)
     else:
-        raise NotImplementedError
+        inputs.append(cavm.ctype.c_type_factory(c_type))
 
 
 def unroll_inputs(params, parser):
@@ -46,6 +44,32 @@ def unroll_inputs(params, parser):
     for parameter in params:
         unroll_input(parameter, parser, ret, decls)
     return (ret, decls)
+
+
+def gen_search_params(unrolled_input, minimum, maximum, prec):
+    search_params = []
+    for c_type in unrolled_input:
+        if c_type.is_floating() and prec is not None:
+            search_params.append({
+                'type': c_type,
+                'min': max(c_type.get_min(), minimum),
+                'max': min(c_type.get_max(), maximum),
+                'prec': prec
+            })
+        elif c_type.is_floating() and prec is None:
+            search_params.append({
+                'type': c_type,
+                'min': max(c_type.get_min(), minimum),
+                'max': min(c_type.get_max(), maximum),
+                'prec': c_type._precision
+            })
+        else:
+            search_params.append({
+                'type': c_type,
+                'min': max(c_type.get_min(), minimum),
+                'max': min(c_type.get_max(), maximum)
+            })
+    return search_params
 
 
 def main():
@@ -99,7 +123,6 @@ def main():
         metavar='<precision>',
         type=int,
         help='precision of floating numbers',
-        default=1,
         required=False)
     args = parser.parse_args()
     parser = Parser(args.target)
@@ -151,15 +174,15 @@ def main():
             ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+        search_params = gen_search_params(unrolled_input, args.min, args.max,
+                                          args.prec)
         print(
-            cavm.avm.search(obj, unrolled_input, branchlist, args.min,
-                            args.max, args.termination, args.prec))
+            cavm.avm.search(obj, search_params, branchlist, args.termination))
 
     else:
         print('Specify the target function using -f option.')
         print('Functions in %s:' % args.target)
-        for i in parser.get_functions():
-            print('\t', i)
+        parser.print_functions()
 
 
 if __name__ == '__main__':

@@ -26,12 +26,14 @@ def parse_config(libs, lib_dirs, extra, include_dirs, flags):
 libs = []
 lib_dirs = []
 extra = []
+extra_link = []
 include_dirs = []
 
 if not os.environ.get('BINARY_DIR_PATH'):
     raise SystemExit('BINARY_DIR_PATH is unset.')
 BINARY_DIR_PATH = os.environ['BINARY_DIR_PATH']
 os.environ['CC'] = BINARY_DIR_PATH + '/bin/clang++'
+os.environ['CXX'] = BINARY_DIR_PATH + '/bin/clang++'
 
 LLVM_SRC_PATH = BINARY_DIR_PATH
 LLVM_BUILD_PATH = BINARY_DIR_PATH + '/bin'
@@ -49,7 +51,7 @@ proc = subprocess.Popen(
     [LLVM_BIN_PATH + '/llvm-config', '--ldflags', '--libs', '--system-libs'],
     stdout=subprocess.PIPE)
 LLVM_LDFLAGS = proc.communicate()[0].decode().split()
-parse_config(libs, lib_dirs, extra, include_dirs, LLVM_LDFLAGS)
+parse_config(libs, lib_dirs, extra_link, include_dirs, LLVM_LDFLAGS)
 
 LLVM_LDFLAGS_NOLIBS = LLVM_BIN_PATH + '/llvm-config --ldflags'
 PLUGIN_LDFLAGS = '-shared -Wl,-undefined,dynamic_lookup'
@@ -66,10 +68,12 @@ CLANG_LIBS = [
     '-lclangDriver',
     '-lclangEdit',
     '-lclangFrontend',
+    '-lclangFrontendTool',
     '-lclangLex',
     '-lclangParse',
     '-lclangSema',
     '-lclangRewrite',
+    '-lclangTooling',
     '-lclangSerialization',
 ]
 if platform.system() != 'Darwin':
@@ -77,12 +81,12 @@ if platform.system() != 'Darwin':
 
 module = Extension(
     'cavm.clang',
-    sources=['lib/python_binding.cpp'],
-    depends=['lib/buildcfg.cpp', 'lib/consumer.cpp'],
+    sources=['lib/python_binding.cpp', 'lib/Cavm.cpp', 'lib/Consumers.cpp', 'lib/ControlDependency.cpp', 'lib/FrontendActions.cpp'],
+    depends=[],
     include_dirs=CLANG_INCLUDES + include_dirs,
     library_dirs=lib_dirs,
     extra_compile_args=extra,
-    extra_link_args=CLANG_LIBS + libs)
+    extra_link_args=CLANG_LIBS+libs+extra_link)
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
