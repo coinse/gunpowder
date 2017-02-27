@@ -27,16 +27,6 @@ int MyASTVisitor::assignStmtid(clang::Stmt *s) {
   return stmtid;
 }
 
-std::pair<clang::Stmt *, clang::Stmt *> MyASTVisitor::getDep(clang::Stmt *s) {
-  branchdepty::iterator it =
-      std::find_if(branchdeps.begin(), branchdeps.end(), isDepExist(s));
-  if (it == branchdeps.end()) {
-    return std::pair<clang::Stmt *, clang::Stmt *>(s, NULL);
-  }
-
-  return *it;
-}
-
 void MyASTVisitor::insertdep(clang::SourceLocation Loc, int stmtid,
                              int parentid, bool cond) {
   std::stringstream ss;

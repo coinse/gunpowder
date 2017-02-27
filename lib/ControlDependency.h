@@ -28,9 +28,6 @@ public:
 
   int assignStmtid(clang::Stmt *s);
 
-  typedef std::vector<std::pair<clang::Stmt *, clang::Stmt *>> branchdepty;
-  branchdepty branchdeps;
-
   struct isDepExist {
     explicit isDepExist(clang::Stmt *s) : _s(s) {}
     bool operator()(std::pair<clang::Stmt *, clang::Stmt *> const &p) {
