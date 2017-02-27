@@ -3,9 +3,14 @@
 #include "ControlDependency.h"
 
 int MyASTVisitor::getStmtid(clang::Stmt *s) {
+  int stmtid;
   branchidsty::iterator it =
       std::find_if(branchids.begin(), branchids.end(), isidExist(s));
-  int stmtid = it->second;
+  if (it == branchids.end()) {
+    stmtid = -1;
+  } else { // if already assigned return assigned id
+    stmtid = it->second;
+  }
   return stmtid;
 }
 
@@ -41,44 +46,25 @@ void MyASTVisitor::insertdep(clang::SourceLocation Loc, int stmtid,
   ss << stmtid;
   ss << "*/\n";
   TheRewriter.InsertText(Loc, ss.str(), true, true);
-  cfg.push_back(std::tuple<int, int, bool>(stmtid, parentid, cond));
 }
 
 int MyASTVisitor::assignDep(clang::Stmt *s, clang::Stmt *parent, bool cond) {
   int stmtid = 0;
   int parentid = 0;
 
-  if (clang::isa<clang::DoStmt>(s)) {
+  if (clang::isa<clang::DoStmt>(s) || clang::isa<clang::ForStmt>(s) ||
+      clang::isa<clang::IfStmt>(s) || clang::isa<clang::WhileStmt>(s)) {
     stmtid = assignStmtid(s);
     parentid = getStmtid(parent);
-    branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
-
-    insertdep(s->getLocStart(), stmtid, parentid, cond);
-  } else if (clang::isa<clang::ForStmt>(s)) {
-    stmtid = assignStmtid(s);
-    parentid = getStmtid(parent);
-    branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
-
-    insertdep(s->getLocStart(), stmtid, parentid, cond);
-  } else if (clang::isa<clang::IfStmt>(s)) {
-    stmtid = assignStmtid(s);
-    parentid = getStmtid(parent);
-    branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
-
-    insertdep(s->getLocStart(), stmtid, parentid, cond);
-  } else if (clang::isa<clang::WhileStmt>(s)) {
-    stmtid = assignStmtid(s);
-    parentid = getStmtid(parent);
-    branchdeps.push_back(std::pair<clang::Stmt *, clang::Stmt *>(s, parent));
-
-    insertdep(s->getLocStart(), stmtid, parentid, cond);
+    if (cfg.find(stmtid) == cfg.end()) {
+      cfg[stmtid] = std::pair<int, bool>(parentid, cond);
+    }
   } else if (clang::isa<clang::CompoundStmt>(s)) {
     clang::CompoundStmt *C = clang::cast<clang::CompoundStmt>(s);
     for (auto *I : C->body()) {
       assignDep(I, parent, cond);
     }
   }
-
   return stmtid;
 }
 
@@ -202,7 +188,7 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
 bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
   if (clang::isa<clang::DoStmt>(s)) {
     clang::DoStmt *F = clang::cast<clang::DoStmt>(s);
-    int stmtid = assignStmtid(s);
+    int stmtid = assignDep(s, nullptr, false);
 
     clang::Expr *Cond = F->getCond();
     clang::Stmt *Body = F->getBody();
@@ -212,7 +198,7 @@ bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
     insertbranchlog(Cond, stmtid);
   } else if (clang::isa<clang::ForStmt>(s)) {
     clang::ForStmt *F = clang::cast<clang::ForStmt>(s);
-    int stmtid = assignStmtid(s);
+    int stmtid = assignDep(s, nullptr, false);
 
     clang::Expr *Cond = F->getCond();
     clang::Stmt *Body = F->getBody();
@@ -222,7 +208,7 @@ bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
     insertbranchlog(Cond, stmtid);
   } else if (clang::isa<clang::IfStmt>(s)) {
     clang::IfStmt *I = clang::cast<clang::IfStmt>(s);
-    int stmtid = assignStmtid(s);
+    int stmtid = assignDep(s, nullptr, false);
 
     clang::Expr *Cond = I->getCond();
     clang::Stmt *Then = I->getThen();
@@ -235,7 +221,7 @@ bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
     insertbranchlog(Cond, stmtid);
   } else if (clang::isa<clang::WhileStmt>(s)) {
     clang::WhileStmt *F = clang::cast<clang::WhileStmt>(s);
-    int stmtid = assignStmtid(s);
+    int stmtid = assignDep(s, nullptr, false);
 
     clang::Expr *Cond = F->getCond();
     clang::Stmt *Body = F->getBody();
