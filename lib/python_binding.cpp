@@ -34,9 +34,9 @@ static PyObject *Parser_instrument(Parser *self, PyObject *args) {
   PyObject *list = PyList_New(0);
   for (const auto &i : cfg) {
     PyObject *item = PyTuple_New(3);
-    PyTuple_SetItem(item, 0, PyLong_FromLong(std::get<0>(i)));
-    PyTuple_SetItem(item, 1, PyLong_FromLong(std::get<1>(i)));
-    PyTuple_SetItem(item, 2, std::get<2>(i) ? Py_True : Py_False);
+    PyTuple_SetItem(item, 0, PyLong_FromLong(i.first));
+    PyTuple_SetItem(item, 1, PyLong_FromLong((i.second).first));
+    PyTuple_SetItem(item, 2, (i.second).second ? Py_True : Py_False);
     PyList_Append(list, item);
   }
 

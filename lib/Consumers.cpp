@@ -14,12 +14,6 @@ bool MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
       }
     }
   }
-  for (auto &it : Visitor.branchids) {
-    if (Visitor.getDep(it.first).second == NULL) {
-      int stmtid = Visitor.getStmtid(it.first);
-      Visitor.insertdep(it.first->getLocStart(), stmtid, -1, 0);
-    }
-  }
 
   return true;
 }

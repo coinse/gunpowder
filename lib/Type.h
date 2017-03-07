@@ -1,7 +1,9 @@
 #ifndef __TYPE_H__
 #define __TYPE_H__
 
-typedef std::vector<std::tuple<int, int, bool>> ControlDependency;
+#include <map>
+
+typedef std::map<int, std::pair<int, bool>> ControlDependency;
 
 typedef std::tuple<std::string, std::vector<std::string>> Decl;
 
