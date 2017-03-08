@@ -46,30 +46,12 @@ def unroll_inputs(params, parser):
     return (ret, decls)
 
 
-def gen_search_params(unrolled_input, minimum, maximum, prec):
-    search_params = []
+def set_search_params(unrolled_input, minimum, maximum, prec):
     for c_type in unrolled_input:
+        c_type.set_min(minimum)
+        c_type.set_max(maximum)
         if c_type.is_floating() and prec is not None:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum),
-                'prec': prec
-            })
-        elif c_type.is_floating() and prec is None:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum),
-                'prec': c_type._precision
-            })
-        else:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum)
-            })
-    return search_params
+          c_type.precision = prec
 
 
 def main():
@@ -174,10 +156,10 @@ def main():
             ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
-        search_params = gen_search_params(unrolled_input, args.min, args.max,
+        set_search_params(unrolled_input, args.min, args.max,
                                           args.prec)
         print(
-            cavm.avm.search(obj, search_params, branchlist, args.termination))
+            cavm.avm.search(obj, unrolled_input, branchlist, args.termination))
 
     else:
         print('Specify the target function using -f option.')
