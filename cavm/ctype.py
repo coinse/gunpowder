@@ -7,6 +7,24 @@
 import random
 
 
+class CStruct:
+    """C struct type class"""
+
+    def __init__(self, name):
+        self.name = name
+        self.is_recursive = False
+        self.members = []
+        self.decl = None
+
+
+class CPointer:
+    """C pointer type class"""
+
+    def __init__(self, ctype):
+        self.underlying_type = ctype
+        self.pointee = None
+
+
 class CType:
     """C type base class"""
 
@@ -16,24 +34,24 @@ class CType:
         self.__min = type(self)._min
 
     def get_min(self):
-      """get min"""
-      return self.__min
+        """get min"""
+        return self.__min
 
     def get_max(self):
-      """get max"""
-      return self.__max
+        """get max"""
+        return self.__max
 
     def set_min(self, value):
-      """set min"""
-      if value < type(self)._min or value > self.__max:
-        raise ValueError
-      self.__min = value
+        """set min"""
+        if value < type(self)._min or value > self.__max:
+            raise ValueError
+        self.__min = value
 
     def set_max(self, value):
-      """set max"""
-      if value > type(self)._max or value < self.__min:
-        raise ValueError
-      self.__max = value
+        """set max"""
+        if value > type(self)._max or value < self.__min:
+            raise ValueError
+        self.__max = value
 
     def is_floating(self):
         """is floating number"""

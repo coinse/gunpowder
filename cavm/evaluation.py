@@ -4,6 +4,7 @@
   compute objective value
 """
 
+from cavm import ctype
 
 def get_trace(dynamic_lib):
     """get trace from dynamic library"""
@@ -75,17 +76,31 @@ class ObjFunc:
             elif c_type[-1:] == '*':
                 underlying_type = c_type[:-1].strip()
                 if underlying_type in scalar_types:
-                  i.append(self.ffi.new(c_type, vector[idx]))
+                    i.append(self.ffi.new(c_type, vector[idx]))
                 elif underlying_type[:6] == 'struct':
-                  fields = self.decls[underlying_type][1]
-                  val, idx = self.vector_to_input(vector, idx, fields)
-                  i.append(self.ffi.new(c_type, val))
+                    fields = self.decls[underlying_type][1]
+                    val, idx = self.vector_to_input(vector, idx, fields)
+                    i.append(self.ffi.new(c_type, val))
             elif c_type[:6] == 'struct':
                 fields = self.decls[c_type][1]
                 val, idx = self.vector_to_input(vector, idx, fields)
                 # struct should be made using pointer and dereferenced
                 i.append(self.ffi.new(c_type + "*", val)[0])
         return (i, idx)
+
+    def make_cffi_input(self, c_input):
+        params = []
+        for c_type in c_input:
+            if isinstance(c_type, ctype.CType):
+                params.append(c_type.value)
+            elif isinstance(c_type, ctype.CStruct):
+                members = self.make_cffi_input(c_type.members)
+                print(members)
+                params.append(self.ffi.new(c_type.name + '*', members)[0])
+            elif isinstance(c_type, ctype.CPointer):
+                print(c_type.underlying_type)
+                params.append(self.ffi.new(c_type.underlying_type + '*'))
+        return params
 
     def set_target(self, branch_id):
         """set ObjFunc object variables"""
@@ -94,32 +109,32 @@ class ObjFunc:
         self.target_branch_id = branch_id
         self.dependency_chain = get_dep_chain(self.cfg, branch_id)
 
-    def get_fitness(self, inputvector):
+    def get_fitness(self, c_input):
         """get fitness score of input vector"""
         self.counter += 1
-        inputtuple = tuple(inputvector)
-        if inputtuple in self.dictionary:
-            return self.dictionary[inputtuple]
+        # disable caching
+        # inputtuple = tuple(inputvector)
+        # if inputtuple in self.dictionary:
+        #     return self.dictionary[inputtuple]
+        # else:
+        c_lib = self.ffi.dlopen(self.dlib)
+        c_function = getattr(c_lib, self.target_function)
+        cffi_input = self.make_cffi_input(c_input)
+        c_function(*cffi_input)
+        trace = get_trace(c_lib)
+        divpoint = get_divergence_point(trace, self.dependency_chain)
+        if divpoint is None:
+            # self.dictionary[inputtuple] = [0, 0]
+            return [0, 0]
+
+        if divpoint[0] == -1:
+            app_lv = float("inf")
+            branch_dist = float("inf")
         else:
-            c_lib = self.ffi.dlopen(self.dlib)
-            c_function = getattr(c_lib, self.target_function)
-            c_input, _ = self.vector_to_input(inputvector, 0, self.params)
-            c_function(*c_input)
-            trace = get_trace(c_lib)
-            divpoint = get_divergence_point(trace, self.dependency_chain)
-            if divpoint is None:
-                self.dictionary[inputtuple] = [0, 0]
-                return [0, 0]
+            app_lv = divpoint[1]
+            branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[
+                divpoint[0]][2]
 
-            if divpoint[0] == -1:
-                app_lv = float("inf")
-                branch_dist = float("inf")
-            else:
-                app_lv = divpoint[1]
-                branch_dist = trace[divpoint[0]][3] if divpoint[
-                    2] == 0 else trace[divpoint[0]][2]
-
-#            fitness = app_lv + (1 - 1.001 ** (-branch_dist))
-            fitness = [app_lv, branch_dist]
-            self.dictionary[inputtuple] = fitness
-            return fitness
+        fitness = [app_lv, branch_dist]
+        # self.dictionary[inputtuple] = fitness
+        return fitness
