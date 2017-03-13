@@ -89,6 +89,8 @@ def set_search_params(c_input, minimum, maximum, prec):
             c_type.set_max(maximum)
             if c_type.is_floating() and prec is not None:
                 c_type.precision = prec
+        elif isinstance(c_type, ctype.CStruct):
+            set_search_params(c_type.members, minimum, maximum, prec)
 
 
 def main():
@@ -192,8 +194,6 @@ def main():
         c_input = []
         for parameter in params:
             c_type = make_CType(parameter, parser)
-            if isinstance(c_type, ctype.CStruct):
-                print(c_type.name)
             c_input.append(c_type)
         decls = get_decl_dict(c_input)
         for decl in decls:

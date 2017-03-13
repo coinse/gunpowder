@@ -95,10 +95,8 @@ class ObjFunc:
                 params.append(c_type.value)
             elif isinstance(c_type, ctype.CStruct):
                 members = self.make_cffi_input(c_type.members)
-                print(members)
                 params.append(self.ffi.new(c_type.name + '*', members)[0])
             elif isinstance(c_type, ctype.CPointer):
-                print(c_type.underlying_type)
                 params.append(self.ffi.new(c_type.underlying_type + '*'))
         return params
 

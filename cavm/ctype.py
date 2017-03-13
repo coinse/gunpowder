@@ -16,6 +16,9 @@ class CStruct:
         self.members = []
         self.decl = None
 
+    def __str__(self):
+        return '[%s]' % ', '.join([str(i) for i in self.members])
+
 
 class CPointer:
     """C pointer type class"""
@@ -23,6 +26,9 @@ class CPointer:
     def __init__(self, ctype):
         self.underlying_type = ctype
         self.pointee = None
+
+    def __str__(self):
+        return "pointer to %s" % print(self.pointee)
 
 
 class CType:
@@ -32,6 +38,9 @@ class CType:
         self.value = 0
         self.__max = type(self)._max
         self.__min = type(self)._min
+
+    def __str__(self):
+        return str(self.value)
 
     def get_min(self):
         """get min"""
