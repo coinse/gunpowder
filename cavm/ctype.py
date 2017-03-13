@@ -5,6 +5,7 @@
 """
 
 import random
+import warnings
 
 
 class CStruct:
@@ -16,8 +17,6 @@ class CStruct:
         self.members = []
         self.decl = None
 
-    def __str__(self):
-        return '[%s]' % ', '.join([str(i) for i in self.members])
 
 
 class CPointer:
@@ -27,20 +26,17 @@ class CPointer:
         self.underlying_type = ctype
         self.pointee = None
 
-    def __str__(self):
-        return "pointer to %s" % print(self.pointee)
 
 
 class CType:
     """C type base class"""
+    is_recursive = False
 
     def __init__(self):
         self.value = 0
         self.__max = type(self)._max
         self.__min = type(self)._min
 
-    def __str__(self):
-        return str(self.value)
 
     def get_min(self):
         """get min"""
@@ -53,13 +49,15 @@ class CType:
     def set_min(self, value):
         """set min"""
         if value < type(self)._min or value > self.__max:
-            raise ValueError
+            warnings.warn("Given minimum value is out of range. Minmum value of type will be used.")
+            return
         self.__min = value
 
     def set_max(self, value):
         """set max"""
         if value > type(self)._max or value < self.__min:
-            raise ValueError
+            warnings.warn("Given maximum value is out of range. Maximum value of type will be used.")
+            return
         self.__max = value
 
     def is_floating(self):

@@ -97,7 +97,14 @@ class ObjFunc:
                 members = self.make_cffi_input(c_type.members)
                 params.append(self.ffi.new(c_type.name + '*', members)[0])
             elif isinstance(c_type, ctype.CPointer):
-                params.append(self.ffi.new(c_type.underlying_type + '*'))
+                if c_type.pointee:
+                    if isinstance(c_type.pointee, ctype.CType):
+                        val = c_type.pointee.value
+                    elif isinstance(c_type.pointee, ctype.CStruct):
+                        val = self.make_cffi_input(c_type.pointee.members)
+                    params.append(self.ffi.new(c_type.underlying_type + '*', val))
+                else:
+                    params.append(self.ffi.NULL)
         return params
 
     def set_target(self, branch_id):
