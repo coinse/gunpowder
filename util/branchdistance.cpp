@@ -39,10 +39,18 @@ template <typename T1, typename T2>
 double EQ(T1 a, T2 b) {
   return a == b ? 0.0 : fabs(a - b) + K;
 }
+template <typename T1, typename T2>
+double EQ(T1 *a, T2 b) {
+  return a ? 0.0 : 100.0;
+}
 
 template <typename T1, typename T2>
 double NEQ(T1 a, T2 b) {
   return a == b ? K : 0.0;
+}
+template <typename T1, typename T2>
+double NEQ(T1 *a, T2 b) {
+  return a ? 100.0 : 0.0;
 }
 
 template <typename T1, typename T2>
@@ -68,6 +76,10 @@ BDist isEqLess(T1 a, T2 b) {
 template <typename T1, typename T2>
 BDist isEqual(T1 a, T2 b) {
   return BDist(a == b, EQ(a, b), NEQ(a, b));
+}
+template <typename T1, typename T2>
+BDist isEqual(T1 *a, T2 b) {
+  return BDist(a == NULL, EQ(a, b), NEQ(a, b));
 }
 
 template <typename T1, typename T2>
