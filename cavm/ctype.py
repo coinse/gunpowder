@@ -18,14 +18,12 @@ class CStruct:
         self.decl = None
 
 
-
 class CPointer:
     """C pointer type class"""
 
     def __init__(self, ctype):
         self.underlying_type = ctype
         self.pointee = None
-
 
 
 class CType:
@@ -36,7 +34,6 @@ class CType:
         self.value = 0
         self.__max = type(self)._max
         self.__min = type(self)._min
-
 
     def get_min(self):
         """get min"""
@@ -49,14 +46,18 @@ class CType:
     def set_min(self, value):
         """set min"""
         if value < type(self)._min or value > self.__max:
-            warnings.warn("Given minimum value is out of range. Minmum value of type will be used.")
+            warnings.warn(
+                "Given minimum value is out of range. Minmum value of type will be used."
+            )
             return
         self.__min = value
 
     def set_max(self, value):
         """set max"""
         if value > type(self)._max or value < self.__min:
-            warnings.warn("Given maximum value is out of range. Maximum value of type will be used.")
+            warnings.warn(
+                "Given maximum value is out of range. Maximum value of type will be used."
+            )
             return
         self.__max = value
 
