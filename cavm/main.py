@@ -25,61 +25,22 @@ def get_dep_map(dep_list):
     return dep_map
 
 
-def unroll_input(c_type, parser, inputs, decls):
-    """flatten the input"""
-    if c_type[-1:] == '*':
-        unroll_input(c_type[:-1].strip(), parser, inputs, decls)
-    elif c_type[:6] == 'struct':
-        decl, fields = parser.get_decl(c_type[6:].strip())
-        decls[c_type] = (decl, fields)
-        for field in fields:
-            unroll_input(field, parser, inputs, decls)
-    else:
-        inputs.append(cavm.ctype.c_type_factory(c_type))
+def _get_decl(type_name, parser, decl_dict):
+    if not type_name in decl_dict:
+        if type_name[-1:] == '*':
+            return _get_decl(type_name[:-1].strip(), parser, decl_dict)
+        elif type_name[:6] == 'struct':
+            decl, members = parser.get_decl(type_name[6:].strip())
+            decl_dict[type_name] = (decl, members)
+            for member in members:
+                _get_decl(member, parser, decl_dict)
 
 
-def make_CType(c_type, parser, stop_recursion=False):
-    if c_type[-1:] == '*':
-        if stop_recursion:
-            return ctype.CPointer(c_type[:-1].strip())
-        else:
-            pointer = ctype.CPointer(c_type[:-1].strip())
-            pointer.pointee = make_CType(c_type[:-1].strip(), parser)
-            return pointer
-    elif c_type[:6] == 'struct':
-        struct = ctype.CStruct(c_type)
-        decl, fields = parser.get_decl(c_type[6:].strip())
-        struct.decl = (decl, fields)
-        for field in fields:
-            if field == c_type + ' *':
-                struct.is_recursive = True
-                struct.members.append(make_CType(field, parser, True))
-            else:
-                struct.members.append(make_CType(field, parser))
-        return struct
-    else:
-        return ctype.c_type_factory(c_type)
-
-
-def get_decl_dict(inputs):
-    decl = {}
-    for c_type in inputs:
-        if isinstance(c_type, ctype.CStruct):
-            decl[c_type.name] = c_type.decl
-            decl.update(get_decl_dict(c_type.members))
-        elif isinstance(c_type, ctype.CPointer):
-            if c_type.pointee:
-                decl.update(get_decl_dict([c_type.pointee]))
-    return decl
-
-
-def unroll_inputs(params, parser):
-    """flatten the list of inputs"""
-    ret = []
-    decls = {}
-    for parameter in params:
-        unroll_input(parameter, parser, ret, decls)
-    return (ret, decls)
+def get_decl_dict(parameters, parser):
+    decl_dict = {}
+    for param in parameters:
+        _get_decl(param, parser, decl_dict)
+    return decl_dict
 
 
 def set_search_params(c_input, minimum, maximum, prec):
@@ -190,12 +151,12 @@ def main():
                 for branch in ([node, False], [node, True])
             ]
 
-        #unrolled_input, decls = unroll_inputs(params, parser)
+        decls = get_decl_dict(params, parser)
         c_input = []
         for parameter in params:
-            c_type = make_CType(parameter, parser)
+            c_type = ctype.make_CType(parameter, decls)
             c_input.append(c_type)
-        decls = get_decl_dict(c_input)
+
         for decl in decls:
             ffi.cdef(decls[decl][0])
 
