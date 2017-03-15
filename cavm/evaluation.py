@@ -6,6 +6,7 @@
 
 from cavm import ctype
 
+
 def get_trace(dynamic_lib):
     """get trace from dynamic library"""
     trace_list = []
@@ -102,7 +103,8 @@ class ObjFunc:
                         val = c_type.pointee.value
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
-                    params.append(self.ffi.new(c_type.underlying_type + '*', val))
+                    params.append(
+                        self.ffi.new(c_type.underlying_type + '*', val))
                 else:
                     params.append(self.ffi.NULL)
         return params
