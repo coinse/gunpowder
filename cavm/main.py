@@ -13,6 +13,7 @@ from cffi import FFI
 from cavm.clang import Parser
 import cavm.avm
 from cavm.evaluation import ObjFunc
+from cavm import ctype
 
 
 def get_dep_map(dep_list):
@@ -37,6 +38,41 @@ def unroll_input(c_type, parser, inputs, decls):
         inputs.append(cavm.ctype.c_type_factory(c_type))
 
 
+def make_CType(c_type, parser, stop_recursion=False):
+    if c_type[-1:] == '*':
+        if stop_recursion:
+            return ctype.CPointer(c_type[:-1].strip())
+        else:
+            pointer = ctype.CPointer(c_type[:-1].strip())
+            pointer.pointee = make_CType(c_type[:-1].strip(), parser)
+            return pointer
+    elif c_type[:6] == 'struct':
+        struct = ctype.CStruct(c_type)
+        decl, fields = parser.get_decl(c_type[6:].strip())
+        struct.decl = (decl, fields)
+        for field in fields:
+            if field == c_type + ' *':
+                struct.is_recursive = True
+                struct.members.append(make_CType(field, parser, True))
+            else:
+                struct.members.append(make_CType(field, parser))
+        return struct
+    else:
+        return ctype.c_type_factory(c_type)
+
+
+def get_decl_dict(inputs):
+    decl = {}
+    for c_type in inputs:
+        if isinstance(c_type, ctype.CStruct):
+            decl[c_type.name] = c_type.decl
+            decl.update(get_decl_dict(c_type.members))
+        elif isinstance(c_type, ctype.CPointer):
+            if c_type.pointee:
+                decl.update(get_decl_dict([c_type.pointee]))
+    return decl
+
+
 def unroll_inputs(params, parser):
     """flatten the list of inputs"""
     ret = []
@@ -46,30 +82,15 @@ def unroll_inputs(params, parser):
     return (ret, decls)
 
 
-def gen_search_params(unrolled_input, minimum, maximum, prec):
-    search_params = []
-    for c_type in unrolled_input:
-        if c_type.is_floating() and prec is not None:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum),
-                'prec': prec
-            })
-        elif c_type.is_floating() and prec is None:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum),
-                'prec': c_type._precision
-            })
-        else:
-            search_params.append({
-                'type': c_type,
-                'min': max(c_type.get_min(), minimum),
-                'max': min(c_type.get_max(), maximum)
-            })
-    return search_params
+def set_search_params(c_input, minimum, maximum, prec):
+    for c_type in c_input:
+        if isinstance(c_type, ctype.CType):
+            c_type.set_min(minimum)
+            c_type.set_max(maximum)
+            if c_type.is_floating() and prec is not None:
+                c_type.precision = prec
+        elif isinstance(c_type, ctype.CStruct):
+            set_search_params(c_type.members, minimum, maximum, prec)
 
 
 def main():
@@ -169,15 +190,18 @@ def main():
                 for branch in ([node, False], [node, True])
             ]
 
-        unrolled_input, decls = unroll_inputs(params, parser)
+        #unrolled_input, decls = unroll_inputs(params, parser)
+        c_input = []
+        for parameter in params:
+            c_type = make_CType(parameter, parser)
+            c_input.append(c_type)
+        decls = get_decl_dict(c_input)
         for decl in decls:
             ffi.cdef(decls[decl][0])
 
         obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
-        search_params = gen_search_params(unrolled_input, args.min, args.max,
-                                          args.prec)
-        print(
-            cavm.avm.search(obj, search_params, branchlist, args.termination))
+        set_search_params(c_input, args.min, args.max, args.prec)
+        print(cavm.avm.search(obj, c_input, branchlist, args.termination))
 
     else:
         print('Specify the target function using -f option.')
