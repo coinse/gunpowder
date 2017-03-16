@@ -41,7 +41,7 @@ double EQ(T1 a, T2 b) {
 }
 template <typename T1, typename T2>
 double EQ(T1 *a, T2 b) {
-  return a ? 0.0 : 100.0;
+  return a ? 100.0 : 0;
 }
 
 template <typename T1, typename T2>
@@ -50,7 +50,7 @@ double NEQ(T1 a, T2 b) {
 }
 template <typename T1, typename T2>
 double NEQ(T1 *a, T2 b) {
-  return a ? 100.0 : 0.0;
+  return a ? 0.0 : 100.0;
 }
 
 template <typename T1, typename T2>
