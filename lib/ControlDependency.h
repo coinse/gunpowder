@@ -50,8 +50,6 @@ public:
 
   bool VisitStmt(clang::Stmt *s);
 
-  bool VisitFunctionDecl(clang::FunctionDecl *f);
-
 private:
   clang::Rewriter &TheRewriter;
   int id;

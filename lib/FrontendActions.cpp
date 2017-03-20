@@ -10,7 +10,7 @@ void MyFrontendAction::EndSourceFileAction() {
       r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
   std::string f = std::string(this->getCurrentFile());
   std::string filename = f.substr(0, f.find_last_of('.'));
-  filename = filename + ".inst.cpp";
+  filename = filename + ".inst.c";
   std::ofstream out(filename.c_str());
   out << std::string(RewriteBuf->begin(), RewriteBuf->end());
 }
@@ -20,7 +20,7 @@ MyFrontendAction::CreateASTConsumer(clang::CompilerInstance &Compiler,
   clang::SourceManager &SourceMgr = Compiler.getSourceManager();
   r.setSourceMgr(SourceMgr, Compiler.getLangOpts());
   r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
-                    "#include \"../util/branchdistance.cpp\"\n");
+                    "#include \"./branch_distance.h\"\n");
   return std::unique_ptr<clang::ASTConsumer>(
       new MyASTConsumer(funcName, r, out));
 }

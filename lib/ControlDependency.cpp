@@ -223,8 +223,3 @@ bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
 
   return true;
 }
-
-bool MyASTVisitor::VisitFunctionDecl(clang::FunctionDecl *f) {
-  TheRewriter.InsertTextAfter(f->getLocStart(), "extern \"C\"\n");
-  return true;
-}
