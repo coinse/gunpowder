@@ -107,8 +107,12 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
                         clang::PrintingPolicy(TheRewriter.getLangOpts()));
       return;
     }
+    if (clang::isa<clang::PointerType>(o->getLHS()->getType()))
+      S << "(int)";
     convertCompositePredicate(o->getLHS(), S, TheRewriter);
     S << ", ";
+    if (clang::isa<clang::PointerType>(o->getRHS()->getType()))
+      S << "(int)";
     convertCompositePredicate(o->getRHS(), S, TheRewriter);
     S << ")";
   } else if (clang::isa<clang::ImplicitCastExpr>(Cond)) {

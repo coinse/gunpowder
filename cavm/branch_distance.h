@@ -32,12 +32,37 @@ trace *HEAD = NULL;
 #define EQ(a, b) a == b ? 0.0 : fabs(a - b) + K
 #define NEQ(a, b) a == b ? K : 0.0
 
-#define isGreater(a, b) (BDist){a > b, GT(a, b), LTE(a, b)}
-#define isEqGreater(a, b) (BDist){a >= b, GTE(a, b), LT(a, b)}
-#define isLess(a, b) (BDist){a < b, LT(a, b), GTE(a, b)}
-#define isEqLess(a, b) (BDist){a <= b, LTE(a, b), GT(a, b)}
-#define isEqual(a, b) (BDist){a == b, EQ(a, b), NEQ(a, b)}
-#define isNotEqual(a, b) (BDist){a != b, NEQ(a, b), EQ(a, b)}
+// https://gcc.gnu.org/onlinedocs/gcc/Typeof.html
+#define isGreater(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a > _b, GT(_a, _b), LTE(_a, _b)}; \
+})
+#define isEqGreater(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a >= _b, GTE(_a, _b), LT(_a, _b)}; \
+})
+#define isLess(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a < _b, LT(_a, _b), GTE(_a, _b)}; \
+})
+#define isEqLess(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a <= _b, LTE(_a, _b), GT(_a, _b)}; \
+})
+#define isEqual(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a == _b, EQ(_a, _b), NEQ(_a, _b)}; \
+})
+#define isNotEqual(a, b) ({ \
+  __auto_type _a = a; \
+  __auto_type _b = b; \
+  (BDist){_a != _b, NEQ(_a, _b), EQ(_a, _b)}; \
+})
 
 void log_trace(int stmtid, int result, double true_distance, double false_distance) {
   if (TAIL) {
