@@ -5,6 +5,12 @@
 """
 
 from cavm import ctype
+from multiprocessing import Process, Queue
+import weakref
+
+# Global dict is needed to keep all objects alive.
+# https://cffi.readthedocs.io/en/latest/using.html#working-with-pointers-structures-and-arrays
+global_weakkeydict = weakref.WeakKeyDictionary()
 
 
 def get_trace(dynamic_lib):
@@ -103,8 +109,9 @@ class ObjFunc:
                         val = c_type.pointee.value
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
-                    params.append(
-                        self.ffi.new(c_type.underlying_type + '*', val))
+                    p = self.ffi.new(c_type.underlying_type + '*', val)
+                    global_weakkeydict[p] = val
+                    params.append(p)
                 else:
                     params.append(self.ffi.NULL)
         return params
@@ -119,16 +126,27 @@ class ObjFunc:
     def get_fitness(self, c_input):
         """get fitness score of input vector"""
         self.counter += 1
+
         # disable caching
         # inputtuple = tuple(inputvector)
         # if inputtuple in self.dictionary:
         #     return self.dictionary[inputtuple]
         # else:
+        def sandbox(q, lib, target, inputs):
+            c_function = getattr(lib, target)
+            c_function(*inputs)
+            q.put(get_trace(lib))
+
         c_lib = self.ffi.dlopen(self.dlib)
-        c_function = getattr(c_lib, self.target_function)
         cffi_input = self.make_cffi_input(c_input)
-        c_function(*cffi_input)
-        trace = get_trace(c_lib)
+
+        q = Queue()
+        p = Process(
+            target=sandbox, args=(q, c_lib, self.target_function, cffi_input))
+        p.start()
+        p.join()
+
+        trace = q.get() if p.exitcode == 0 else []
         divpoint = get_divergence_point(trace, self.dependency_chain)
         if divpoint is None:
             # self.dictionary[inputtuple] = [0, 0]

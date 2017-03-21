@@ -264,3 +264,28 @@ def c_type_factory(raw_type):
         if raw_type in typeclass._repr:
             return typeclass()
     raise NotImplementedError
+
+
+def make_CType(c_type, decl_dict, stop_recursion=False):
+    if c_type[-1:] == '*':
+        #if stop_recursion:
+        return CPointer(c_type[:-1].strip())
+        """
+        else:
+            pointer = CPointer(c_type[:-1].strip())
+            pointer.pointee = make_CType(c_type[:-1].strip(), decl_dict)
+            return pointer
+        """
+    elif c_type[:6] == 'struct':
+        struct = CStruct(c_type)
+        decl, fields = decl_dict[c_type]
+        struct.decl = (decl, fields)
+        for field in fields:
+            if field == c_type + ' *':
+                struct.is_recursive = True
+                struct.members.append(make_CType(field, decl_dict, True))
+            else:
+                struct.members.append(make_CType(field, decl_dict))
+        return struct
+    else:
+        return c_type_factory(c_type)
