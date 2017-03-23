@@ -10,11 +10,11 @@ static llvm::cl::OptionCategory Category("options");
 
 class Cavm {
 public:
-  Cavm(std::string fileName) : fileName(fileName) {
-    int argc = 3;
-    const char *argv[] = {"clang", "input.c", "--"};
+  Cavm(std::string fileName, std::vector<const char *> &opts)
+      : fileName(fileName), opts(opts) {
+    int argc = opts.size();
 
-    p = new clang::tooling::CommonOptionsParser(argc, argv, Category);
+    p = new clang::tooling::CommonOptionsParser(argc, opts.data(), Category);
     Sources.push_back(fileName);
 
     tool = new clang::tooling::ClangTool(p->getCompilations(), Sources);
@@ -31,6 +31,7 @@ private:
   clang::tooling::ClangTool *tool;
   std::string fileName;
   std::vector<std::string> Sources;
+  std::vector<const char *> &opts;
 };
 
 #endif // __CAVM_H__

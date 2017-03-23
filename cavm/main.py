@@ -7,16 +7,18 @@
 import sys
 import argparse
 import shutil
-from subprocess import run
+import subprocess
 from os import path
 from cffi import FFI
 
-from cavm.clang import Parser
-import cavm.avm
-from cavm.evaluation import ObjFunc
+from cavm import avm
+from cavm import clang
+from cavm import commands
 from cavm import ctype
+from cavm import evaluation
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
+
 
 def get_dep_map(dep_list):
     """get dependecy map from list"""
@@ -60,56 +62,105 @@ def main():
     """
     A simple method that runs a CAVM.
     """
-    parser = argparse.ArgumentParser(
-        description='Do AVM search over a given c function')
-    parser.add_argument(
-        'target',
-        metavar='<target file>',
-        type=str,
-        help='location of target c file')
-    parser.add_argument(
-        '-f',
-        '--function',
-        metavar='<target function>',
-        type=str,
-        help='name of function',
-        required=False)
-    parser.add_argument(
-        '-b',
-        '--branch',
-        metavar='<target branch>',
-        type=str,
-        help='name of branch',
-        required=False)
-    parser.add_argument(
-        '--min',
-        metavar='<minimum random value>',
-        type=int,
-        help='random minimum',
-        default=-100,
-        required=False)
-    parser.add_argument(
-        '--max',
-        metavar='<maximum random value>',
-        type=int,
-        help='random maximum',
-        default=100,
-        required=False)
-    parser.add_argument(
-        '--termination',
-        metavar='<search iteration bound>',
-        type=int,
-        help='iteration bound',
-        default=1000,
-        required=False)
-    parser.add_argument(
-        '--prec',
-        metavar='<precision>',
-        type=int,
-        help='precision of floating numbers',
-        required=False)
-    args = parser.parse_args()
-    parser = Parser(args.target)
+    usage = [
+        "",
+        "Type 'cavm <command> -h' for help on a specific command.",
+        "",
+        "Available commands:",
+        "\tinstrument",
+        "\tsearch",
+        "\trun",
+    ]
+    command_parser = argparse.ArgumentParser(
+        usage='\n'.join(usage), add_help=False)
+    command_parser.add_argument(
+        'command', type=str, choices=['instrument', 'search', 'run'])
+
+    opts, args = command_parser.parse_known_args()
+
+    if opts.command == 'instrument':
+        instrument(args)
+    elif opts.command == 'search':
+        search(args)
+    elif opts.command == 'run':
+        run(args)
+
+
+def instrument(argv):
+    cmd = commands.Instrument()
+    parser = argparse.ArgumentParser(description=cmd.description)
+    cmd.add_args(parser)
+    args = parser.parse_args(argv)
+    parser = clang.Parser(args.target, args.flags)
+    if args.function:
+        parser.instrument(args.function)
+        shutil.copy(CAVM_HEADER, path.dirname(args.target))
+    else:
+        print('Specify the target function using -f option.')
+        print('Functions in %s:' % args.target)
+        parser.print_functions()
+    return
+
+
+def search(argv):
+    cmd = commands.Search()
+    parser = argparse.ArgumentParser(description=cmd.description)
+    cmd.add_args(parser)
+    args = parser.parse_args(argv)
+
+    parser = clang.Parser(args.target, args.flags)
+
+    if args.function:
+        name, _ = path.splitext(args.target)
+        dlib = args.binary
+        cfg = get_dep_map(parser.instrument(args.function))
+
+        decl, params = parser.get_decl(args.function)
+        ffi = FFI()
+        ffi.cdef(decl)
+
+        with open(CAVM_HEADER, 'r') as f:
+            lines = f.readlines()
+            ffi.cdef(''.join(lines[13:22]))
+
+        node_num = len(cfg.keys())
+        if args.branch != None:
+            predicate = args.branch[-1] == "T" or args.branch[-1] == "t"
+            targetbranch = [int(args.branch[:-1]), predicate]
+            branchlist = [targetbranch]
+        else:
+            branchlist = [
+                branch
+                for node in range(node_num)
+                for branch in ([node, False], [node, True])
+            ]
+
+        decls = get_decl_dict(params, parser)
+        c_input = []
+        for parameter in params:
+            c_type = ctype.make_CType(parameter, decls)
+            c_input.append(c_type)
+
+        for decl in decls:
+            ffi.cdef(decls[decl][0])
+
+        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+        set_search_params(c_input, args.min, args.max, args.prec)
+        print(avm.search(obj, c_input, branchlist, args.termination))
+
+    else:
+        print('Specify the target function using -f option.')
+        print('Functions in %s:' % args.target)
+        parser.print_functions()
+
+
+def run(argv):
+    cmd = commands.Run()
+    arg_parser = argparse.ArgumentParser(description='Run CAVM without own build chain')
+    cmd.add_args(arg_parser)
+    args = arg_parser.parse_args(argv)
+
+    parser = clang.Parser(args.target, args.flags)
 
     if args.function:
         name, _ = path.splitext(args.target)
@@ -118,7 +169,7 @@ def main():
         shutil.copy(CAVM_HEADER, path.dirname(args.target))
         # End of Instrumentation
 
-        proc = run([
+        proc = subprocess.run([
             'gcc', '-fPIC', '-shared', '-o', dlib, name + '.inst.c',
         ])
         if proc.returncode != 0:
@@ -153,15 +204,14 @@ def main():
         for decl in decls:
             ffi.cdef(decls[decl][0])
 
-        obj = ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls)
         set_search_params(c_input, args.min, args.max, args.prec)
-        print(cavm.avm.search(obj, c_input, branchlist, args.termination))
+        print(avm.search(obj, c_input, branchlist, args.termination))
 
     else:
         print('Specify the target function using -f option.')
         print('Functions in %s:' % args.target)
         parser.print_functions()
-
 
 if __name__ == '__main__':
     main()
