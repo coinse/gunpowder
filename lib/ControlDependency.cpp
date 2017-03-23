@@ -173,6 +173,24 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
   } else if (clang::isa<clang::ParenExpr>(Cond)) {
     clang::ParenExpr *o = clang::dyn_cast<clang::ParenExpr>(Cond);
     convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
+  } else if (clang::isa<clang::CallExpr>(Cond)) {
+      clang::CallExpr *c = clang::dyn_cast<clang::CallExpr>(Cond);
+      clang::FunctionDecl *f = clang::dyn_cast<clang::CallExpr>(Cond)->getDirectCallee();
+      std::string funcName = f->getNameInfo().getName().getAsString();
+      if (funcName == "strcmp") {
+        S << "strcmp2(";
+        for (auto &it : c->arguments()){
+          if (it != *(c->arg_begin()))
+            S << ", ";
+          it->printPretty(S, nullptr,
+              clang::PrintingPolicy(TheRewriter.getLangOpts()));
+        }
+        S << ")";
+
+      } else {
+        Cond->printPretty(S, nullptr,
+            clang::PrintingPolicy(TheRewriter.getLangOpts()));
+      }
   } else {
     Cond->printPretty(S, nullptr,
                       clang::PrintingPolicy(TheRewriter.getLangOpts()));
