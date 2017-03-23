@@ -21,6 +21,8 @@ MyFrontendAction::CreateASTConsumer(clang::CompilerInstance &Compiler,
   r.setSourceMgr(SourceMgr, Compiler.getLangOpts());
   r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
                     "#include \"./branch_distance.h\"\n");
+  r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
+                    "#include \"../util/strcmp2.c\"\n");
   return std::unique_ptr<clang::ASTConsumer>(
       new MyASTConsumer(funcName, r, out));
 }
