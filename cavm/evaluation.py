@@ -86,9 +86,13 @@ class ObjFunc:
                 if c_type.pointee:
                     if isinstance(c_type.pointee, ctype.CType):
                         val = c_type.pointee.value
+                        p = self.ffi.new(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
-                    p = self.ffi.new(c_type.underlying_type + '*', val)
+                        p = self.ffi.new(c_type.underlying_type + '*', val)
+                    elif isinstance(c_type.pointee, list):
+                        val = [x.value for x in c_type.pointee]
+                        p = self.ffi.new(c_type.underlying_type + '[]', val)
                     global_weakkeydict[p] = val
                     params.append(p)
                 else:
