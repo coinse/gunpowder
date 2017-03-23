@@ -78,20 +78,20 @@ class ObjFunc:
         params = []
         for c_type in c_input:
             if isinstance(c_type, ctype.CType):
-                params.append(c_type.value)
+                params.append(c_type.value.to_bytes(1, 'big', signed=True) if isinstance(c_type, ctype.CTypeChar) else c_type.value)
             elif isinstance(c_type, ctype.CStruct):
                 members = self.make_cffi_input(c_type.members)
                 params.append(self.ffi.new(c_type.name + '*', members)[0])
             elif isinstance(c_type, ctype.CPointer):
                 if c_type.pointee:
                     if isinstance(c_type.pointee, ctype.CType):
-                        val = c_type.pointee.value
+                        val = c_type.pointee.value.to_bytes(1, 'big', signed=True) if isinstance(c_type.pointee, ctype.CTypeChar) else c_type.pointee.value
                         p = self.ffi.new(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
                         p = self.ffi.new(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, list):
-                        val = [x.value for x in c_type.pointee]
+                        val = [x.value.to_bytes(1, 'big', signed=True) if isinstance(x, ctype.CTypeChar) else x.value for x in c_type.pointee]
                         p = self.ffi.new(c_type.underlying_type + '[]', val)
                     global_weakkeydict[p] = val
                     params.append(p)
