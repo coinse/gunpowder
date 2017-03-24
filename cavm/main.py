@@ -119,7 +119,7 @@ def main():
         # End of Instrumentation
 
         proc = run([
-            'gcc', '-shared', '-o', dlib, name + '.inst.c',
+            'gcc', '-fPIC', '-shared', '-o', dlib, name + '.inst.c',
         ])
         if proc.returncode != 0:
             sys.exit(proc.returncode)
