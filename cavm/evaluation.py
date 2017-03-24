@@ -16,11 +16,13 @@ global_weakkeydict = weakref.WeakKeyDictionary()
 def get_trace(dynamic_lib):
     """get trace from dynamic library"""
     trace_list = []
-    for i in range(dynamic_lib.getTraceSize()):
-        trace = dynamic_lib.getTrace(i)
-        trace_list.append((trace.stmtid, trace.result, trace.trueDistance,
-                           trace.falseDistance))
-    dynamic_lib.resetTrace()
+    while True:
+        trace = dynamic_lib.get_trace()
+        if trace.stmtid == -1:
+            break
+        else:
+            trace_list.append((trace.stmtid, trace.result, trace.true_distance,
+                           trace.false_distance))
     return trace_list
 
 

@@ -6,6 +6,7 @@
 
 import sys
 import argparse
+import shutil
 from subprocess import run
 from os import path
 from cffi import FFI
@@ -15,6 +16,7 @@ import cavm.avm
 from cavm.evaluation import ObjFunc
 from cavm import ctype
 
+CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
 
 def get_dep_map(dep_list):
     """get dependecy map from list"""
@@ -113,10 +115,11 @@ def main():
         name, _ = path.splitext(args.target)
         dlib = name + '.so'
         cfg = get_dep_map(parser.instrument(args.function))
+        shutil.copy(CAVM_HEADER, path.dirname(args.target))
+        # End of Instrumentation
 
         proc = run([
-            'g++', '-fPIC', '-shared', '-o', dlib, name + '.inst.cpp',
-            '-std=c++11'
+            'gcc', '-fPIC', '-shared', '-o', dlib, name + '.inst.c',
         ])
         if proc.returncode != 0:
             sys.exit(proc.returncode)
@@ -124,20 +127,10 @@ def main():
         decl, params = parser.get_decl(args.function)
         ffi = FFI()
         ffi.cdef(decl)
-        ffi.cdef("""
-      typedef struct {
-        int stmtid;
-        int result;
-        double trueDistance;
-        double falseDistance;
-      } traceItem;
 
-      traceItem getTrace(int idx);
-
-      int getTraceSize();
-      
-      void resetTrace();
-    """)
+        with open(CAVM_HEADER, 'r') as f:
+          lines = f.readlines()
+          ffi.cdef(''.join(lines[13:22]))
 
         node_num = len(cfg.keys())
         if args.branch != None:
