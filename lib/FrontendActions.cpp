@@ -22,7 +22,7 @@ MyFrontendAction::CreateASTConsumer(clang::CompilerInstance &Compiler,
   r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
                     "#include \"./branch_distance.h\"\n");
   r.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()),
-                    "#include \"../util/strcmp2.c\"\n");
+                    "#include \"./strcmp2.c\"\n");
   return std::unique_ptr<clang::ASTConsumer>(
       new MyASTConsumer(funcName, r, out));
 }

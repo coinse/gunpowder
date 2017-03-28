@@ -18,6 +18,7 @@ from cavm import ctype
 from cavm import evaluation
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
+STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
 
 
 def get_dep_map(dep_list):
@@ -167,6 +168,7 @@ def run(argv):
         dlib = name + '.so'
         cfg = get_dep_map(parser.instrument(args.function))
         shutil.copy(CAVM_HEADER, path.dirname(args.target))
+        shutil.copy(STRCMP2, path.dirname(args.target))
         # End of Instrumentation
 
         proc = subprocess.run([
