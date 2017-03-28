@@ -26,7 +26,8 @@ bool DeclarationConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
         if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
           if (f->hasBody()) {
             std::stringstream ss;
-            ss << clang::QualType::getAsString(f->getReturnType().split())
+            ss << clang::QualType::getAsString(
+                      f->getReturnType().getCanonicalType().split())
                << ' ';
             ss << f->getNameAsString();
             ss << '(';
