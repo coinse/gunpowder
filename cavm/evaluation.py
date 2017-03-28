@@ -22,7 +22,7 @@ def get_trace(dynamic_lib):
             break
         else:
             trace_list.append((trace.stmtid, trace.result, trace.true_distance,
-                           trace.false_distance))
+                               trace.false_distance))
     return trace_list
 
 
@@ -74,44 +74,36 @@ class ObjFunc:
         self.target_branch_id = None
         self.dependency_chain = None
 
-    def vector_to_input(self, vector, idx, params):
-        """convert python vector list to C input format"""
-        i = []
-        scalar_types = ['unsigned int', 'int', 'long', 'float', 'double']
-        for c_type in params:
-            if c_type in scalar_types:
-                i.append(vector[idx])
-                idx += 1
-            elif c_type[-1:] == '*':
-                underlying_type = c_type[:-1].strip()
-                if underlying_type in scalar_types:
-                    i.append(self.ffi.new(c_type, vector[idx]))
-                elif underlying_type[:6] == 'struct':
-                    fields = self.decls[underlying_type][1]
-                    val, idx = self.vector_to_input(vector, idx, fields)
-                    i.append(self.ffi.new(c_type, val))
-            elif c_type[:6] == 'struct':
-                fields = self.decls[c_type][1]
-                val, idx = self.vector_to_input(vector, idx, fields)
-                # struct should be made using pointer and dereferenced
-                i.append(self.ffi.new(c_type + "*", val)[0])
-        return (i, idx)
-
     def make_cffi_input(self, c_input):
         params = []
         for c_type in c_input:
             if isinstance(c_type, ctype.CType):
-                params.append(c_type.value)
+                params.append(
+                    c_type.value.to_bytes(1, 'big', signed=True)
+                    if isinstance(c_type, ctype.CTypeChar) else c_type.value)
             elif isinstance(c_type, ctype.CStruct):
                 members = self.make_cffi_input(c_type.members)
                 params.append(self.ffi.new(c_type.name + '*', members)[0])
             elif isinstance(c_type, ctype.CPointer):
                 if c_type.pointee:
                     if isinstance(c_type.pointee, ctype.CType):
-                        val = c_type.pointee.value
+                        val = c_type.pointee.value.to_bytes(
+                            1, 'big', signed=True) if isinstance(
+                                c_type.pointee,
+                                ctype.CTypeChar) else c_type.pointee.value
+                        p = self.ffi.new(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
-                    p = self.ffi.new(c_type.underlying_type + '*', val)
+                        p = self.ffi.new(c_type.underlying_type + '*', val)
+                    elif isinstance(c_type.pointee, list):
+                        if isinstance(c_type.pointee[0], ctype.CTypeChar):
+                            val = b''
+                            for x in c_type.pointee:
+                                val = val + x.value.to_bytes(
+                                    1, 'big', signed=True)
+                        else:
+                            val = [x.value for x in c_type.pointee]
+                        p = self.ffi.new(c_type.underlying_type + '[]', val)
                     global_weakkeydict[p] = val
                     params.append(p)
                 else:

@@ -18,6 +18,7 @@ from cavm import ctype
 from cavm import evaluation
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
+STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
 
 
 def get_dep_map(dep_list):
@@ -167,10 +168,16 @@ def run(argv):
         dlib = name + '.so'
         cfg = get_dep_map(parser.instrument(args.function))
         shutil.copy(CAVM_HEADER, path.dirname(args.target))
+        shutil.copy(STRCMP2, path.dirname(args.target))
         # End of Instrumentation
 
         proc = subprocess.run([
-            'gcc', '-fPIC', '-shared', '-o', dlib, name + '.inst.c',
+            'gcc',
+            '-fPIC',
+            '-shared',
+            '-o',
+            dlib,
+            name + '.inst.c',
         ])
         if proc.returncode != 0:
             sys.exit(proc.returncode)
@@ -180,8 +187,8 @@ def run(argv):
         ffi.cdef(decl)
 
         with open(CAVM_HEADER, 'r') as f:
-          lines = f.readlines()
-          ffi.cdef(''.join(lines[13:22]))
+            lines = f.readlines()
+            ffi.cdef(''.join(lines[13:22]))
 
         node_num = len(cfg.keys())
         if args.branch != None:
