@@ -13,6 +13,32 @@ import weakref
 global_weakkeydict = weakref.WeakKeyDictionary()
 
 
+class GlobalOptima(Exception):
+    pass
+
+
+class CollateralOptima(Exception):
+    def __init__(self, covered):
+        self.covered = covered
+
+
+def get_covered_branches(trace, covered):
+    true_covered = set()
+    false_covered = set()
+    result = []
+    for log in trace:
+        if log[0] not in false_covered:
+            if log[1] == 0 and log[3] == 0.0:
+                false_covered.add(log[0])
+                result.append([log[0], False])
+        if log[0] not in true_covered:
+            if log[1] == 1 and log[2] == 0.0:
+                true_covered.add(log[0])
+                result.append([log[0], True])
+    result = [branch for branch in result if branch not in covered]
+    return result
+
+
 def get_trace(dynamic_lib):
     """get trace from dynamic library"""
     trace_list = []
@@ -73,6 +99,7 @@ class ObjFunc:
         self.dictionary = {}
         self.target_branch_id = None
         self.dependency_chain = None
+        self.covered = []
 
     def make_cffi_input(self, c_input):
         params = []
@@ -142,9 +169,15 @@ class ObjFunc:
 
         trace = q.get() if p.exitcode == 0 else []
         divpoint = get_divergence_point(trace, self.dependency_chain)
+        covered = get_covered_branches(trace, self.covered)
+        if covered:
+            self.covered = self.covered + covered
+            raise CollateralOptima(covered)
+
         if divpoint is None:
             # self.dictionary[inputtuple] = [0, 0]
-            return [0, 0]
+            self.covered.append(self.target_branch_id)
+            raise GlobalOptima
 
         if divpoint[0] == -1:
             app_lv = float("inf")

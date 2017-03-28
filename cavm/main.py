@@ -132,7 +132,7 @@ def search(argv):
         else:
             branchlist = [
                 branch
-                for node in range(node_num)
+                for node in reversed(range(node_num))
                 for branch in ([node, False], [node, True])
             ]
 
@@ -157,7 +157,8 @@ def search(argv):
 
 def run(argv):
     cmd = commands.Run()
-    arg_parser = argparse.ArgumentParser(description='Run CAVM without own build chain')
+    arg_parser = argparse.ArgumentParser(
+        description='Run CAVM without own build chain')
     cmd.add_args(arg_parser)
     args = arg_parser.parse_args(argv)
 
@@ -198,7 +199,7 @@ def run(argv):
         else:
             branchlist = [
                 branch
-                for node in range(node_num)
+                for node in reversed(range(node_num))
                 for branch in ([node, False], [node, True])
             ]
 
@@ -219,6 +220,7 @@ def run(argv):
         print('Specify the target function using -f option.')
         print('Functions in %s:' % args.target)
         parser.print_functions()
+
 
 if __name__ == '__main__':
     main()
