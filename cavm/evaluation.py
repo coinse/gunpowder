@@ -91,7 +91,12 @@ class ObjFunc:
                         val = self.make_cffi_input(c_type.pointee.members)
                         p = self.ffi.new(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, list):
-                        val = [x.value.to_bytes(1, 'big', signed=True) if isinstance(x, ctype.CTypeChar) else x.value for x in c_type.pointee]
+                        if isinstance(c_type.pointee[0], ctype.CTypeChar):
+                            val = b''
+                            for x in c_type.pointee:
+                                val = val + x.value.to_bytes(1, 'big', signed=True)
+                        else:
+                            val = [ x.value for x in c_type.pointee ]
                         p = self.ffi.new(c_type.underlying_type + '[]', val)
                     global_weakkeydict[p] = val
                     params.append(p)
