@@ -17,11 +17,26 @@ static void Parser_dealloc(Parser *self) {
 }
 
 static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
-  const char *filename;
+  const char *filename, *s;
+  std::vector<const char *> opts;
+  PyObject *obj, *iterator, *item;
 
-  if (!PyArg_ParseTuple(args, "s", &filename))
+  if (!PyArg_ParseTuple(args, "sO", &filename, &obj))
     return -1;
-  self->cavm = new Cavm(filename);
+  iterator = PyObject_GetIter(obj);
+  if (iterator == NULL)
+    return -1;
+
+  opts.push_back("clang");
+  opts.push_back("input.c");
+  opts.push_back("--");
+  while (item = PyIter_Next(iterator)) {
+    s = PyUnicode_AsUTF8(item);
+    opts.push_back(s);
+    Py_DECREF(item);
+  }
+  Py_DECREF(iterator);
+  self->cavm = new Cavm(filename, opts);
   return 0;
 }
 
