@@ -172,7 +172,12 @@ def run(argv):
         # End of Instrumentation
 
         proc = subprocess.run([
-            'gcc', '-fPIC', '-shared', '-o', dlib, name + '.inst.c',
+            'gcc',
+            '-fPIC',
+            '-shared',
+            '-o',
+            dlib,
+            name + '.inst.c',
         ])
         if proc.returncode != 0:
             sys.exit(proc.returncode)
@@ -182,8 +187,8 @@ def run(argv):
         ffi.cdef(decl)
 
         with open(CAVM_HEADER, 'r') as f:
-          lines = f.readlines()
-          ffi.cdef(''.join(lines[13:22]))
+            lines = f.readlines()
+            ffi.cdef(''.join(lines[13:22]))
 
         node_num = len(cfg.keys())
         if args.branch != None:
