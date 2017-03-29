@@ -68,9 +68,14 @@ void MyASTVisitor::insertbranchlog(clang::Expr *Cond, int stmtid) {
         convertCompositePredicate(Cond, S, TheRewriter);
     } else {
         S << "isNotEqual(";
+        if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
+          S << "(void *)";
         Cond->printPretty(S, nullptr,
                           clang::PrintingPolicy(TheRewriter.getLangOpts()));
-        S << ", 0)";
+        if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
+          S << ", NULL)";
+        else
+          S << ", 0)";
     }
     S << ")";
     TheRewriter.ReplaceText(
