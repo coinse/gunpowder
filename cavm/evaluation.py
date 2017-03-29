@@ -17,12 +17,7 @@ class GlobalOptima(Exception):
     pass
 
 
-class CollateralOptima(Exception):
-    def __init__(self, covered):
-        self.covered = covered
-
-
-def get_covered_branches(trace, covered):
+def get_covered_branches(trace):
     true_covered = set()
     false_covered = set()
     result = []
@@ -35,7 +30,6 @@ def get_covered_branches(trace, covered):
             if log[1] == 1 and log[2] == 0.0:
                 true_covered.add(log[0])
                 result.append([log[0], True])
-    result = [branch for branch in result if branch not in covered]
     return result
 
 
@@ -144,8 +138,8 @@ class ObjFunc:
         self.target_branch_id = branch_id
         self.dependency_chain = get_dep_chain(self.cfg, branch_id)
 
-    def get_fitness(self, c_input):
-        """get fitness score of input vector"""
+    def execute(self, c_input):
+        """execute target function"""
         self.counter += 1
 
         # disable caching
@@ -160,7 +154,6 @@ class ObjFunc:
 
         c_lib = self.ffi.dlopen(self.dlib)
         cffi_input = self.make_cffi_input(c_input)
-
         q = Queue()
         p = Process(
             target=sandbox, args=(q, c_lib, self.target_function, cffi_input))
@@ -168,12 +161,14 @@ class ObjFunc:
         p.join()
 
         trace = q.get() if p.exitcode == 0 else []
-        divpoint = get_divergence_point(trace, self.dependency_chain)
-        covered = get_covered_branches(trace, self.covered)
-        if covered:
-            self.covered = self.covered + covered
-            raise CollateralOptima(covered)
 
+        return trace
+
+
+    def get_fitness(self, c_input):
+        """get fitness score of input vector"""
+        trace = self.execute(c_input)
+        divpoint = get_divergence_point(trace, self.dependency_chain)
         if divpoint is None:
             # self.dictionary[inputtuple] = [0, 0]
             self.covered.append(self.target_branch_id)
