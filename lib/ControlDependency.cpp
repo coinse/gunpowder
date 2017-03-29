@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iostream>
 
 #include "ControlDependency.h"
 
@@ -63,7 +64,14 @@ void MyASTVisitor::insertbranchlog(clang::Expr *Cond, int stmtid) {
     std::string str;
     llvm::raw_string_ostream S(str);
     S << "inst(" << stmtid << ", ";
-    convertCompositePredicate(Cond, S, TheRewriter);
+    if (clang::isa<clang::BinaryOperator>(Cond)) {
+        convertCompositePredicate(Cond, S, TheRewriter);
+    } else {
+        S << "isNotEqual(";
+        Cond->printPretty(S, nullptr,
+                          clang::PrintingPolicy(TheRewriter.getLangOpts()));
+        S << ", 0)";
+    }
     S << ")";
     TheRewriter.ReplaceText(
         (TheRewriter.getSourceMgr()).getExpansionRange(Cond->getSourceRange()),
@@ -77,6 +85,7 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
   if (clang::isa<clang::BinaryOperator>(Cond)) {
     clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(Cond);
     clang::BinaryOperator::Opcode Opc = o->getOpcode();
+    bool checkOperands = false;
     switch (Opc) {
     case clang::BO_GT:
       S << "isGreater(";
@@ -98,39 +107,43 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
       break;
     case clang::BO_LAnd:
       S << "l_and(";
+      checkOperands = true;
       break;
     case clang::BO_LOr:
       S << "l_or(";
+      checkOperands = true;
       break;
     default:
       Cond->printPretty(S, nullptr,
                         clang::PrintingPolicy(TheRewriter.getLangOpts()));
       return;
     }
-    if (clang::isa<clang::PointerType>(o->getLHS()->getType()))
-      S << "(int)";
-    convertCompositePredicate(o->getLHS(), S, TheRewriter);
-    S << ", ";
-    if (clang::isa<clang::PointerType>(o->getRHS()->getType()))
-      S << "(int)";
-    convertCompositePredicate(o->getRHS(), S, TheRewriter);
-    S << ")";
-  } else if (clang::isa<clang::ImplicitCastExpr>(Cond)) {
-    clang::ImplicitCastExpr *c = clang::dyn_cast<clang::ImplicitCastExpr>(Cond);
-    switch (c->getCastKind()) {
-    case clang::CK_MemberPointerToBoolean:
-    case clang::CK_PointerToBoolean:
-    case clang::CK_IntegralToBoolean:
-    case clang::CK_FloatingToBoolean:
-    case clang::CK_FloatingComplexToBoolean:
-      S << "isNotEqual(";
-      Cond->printPretty(S, nullptr,
-                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
-      S << ", 0)";
-      break;
-    default:
-      convertCompositePredicate(c->getSubExpr(), S, TheRewriter);
+    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getLHS())) {
+        S << "isNotEqual(";
+        if (clang::isa<clang::PointerType>(o->getLHS()->getType().getCanonicalType()))
+          S << "(void *)";
+        o->getLHS()->printPretty(S, nullptr,
+                          clang::PrintingPolicy(TheRewriter.getLangOpts()));
+        S << ", 0)";
+    } else {
+        if (clang::isa<clang::PointerType>(o->getLHS()->getType().getCanonicalType()))
+          S << "(void *)";
+        convertCompositePredicate(o->getLHS(), S, TheRewriter);
     }
+    S << ", ";
+    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getRHS())) {
+        S << "isNotEqual(";
+        if (clang::isa<clang::PointerType>(o->getRHS()->getType().getCanonicalType()))
+          S << "(void *)";
+        o->getLHS()->printPretty(S, nullptr,
+                          clang::PrintingPolicy(TheRewriter.getLangOpts()));
+        S << ", 0)";
+    } else {
+        if (clang::isa<clang::PointerType>(o->getRHS()->getType().getCanonicalType()))
+          S << "(void *)";
+        convertCompositePredicate(o->getRHS(), S, TheRewriter);
+    }
+    S << ")";
   } else if (clang::isa<clang::UnaryOperator>(Cond)) {
     clang::UnaryOperator *o = clang::dyn_cast<clang::UnaryOperator>(Cond);
     clang::UnaryOperator::Opcode Opc = o->getOpcode();
