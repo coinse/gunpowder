@@ -21,6 +21,7 @@ typedef struct _trace {
 void log_trace(int stmtid, int result, double true_distance, double false_distance);
 trace get_trace(); 
 
+#include <stdio.h>
 double const K = 1.0;
 trace *TAIL = NULL;
 trace *HEAD = NULL;
@@ -80,8 +81,10 @@ void log_trace(int stmtid, int result, double true_distance, double false_distan
 }
 
 trace get_trace() {
-  if (HEAD == NULL)
+  if (HEAD == NULL) {
+    TAIL = NULL;
     return (trace){-1};
+  }
   trace t = {
     HEAD->stmtid,
     HEAD->result,

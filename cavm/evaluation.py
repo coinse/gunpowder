@@ -82,7 +82,7 @@ def get_divergence_point(trace, dependency_chain):
 class ObjFunc:
     """Objective Function"""
 
-    def __init__(self, target_ftn, dlib, ffi, cfg, p, d):
+    def __init__(self, target_ftn, dlib, ffi, cfg, p, d, sb):
         self.target_function = target_ftn
         self.dlib = dlib
         self.ffi = ffi
@@ -94,6 +94,7 @@ class ObjFunc:
         self.target_branch_id = None
         self.dependency_chain = None
         self.covered = []
+        self.sandbox = sb
 
     def make_cffi_input(self, c_input):
         params = []
@@ -154,13 +155,18 @@ class ObjFunc:
 
         c_lib = self.ffi.dlopen(self.dlib)
         cffi_input = self.make_cffi_input(c_input)
-        q = Queue()
-        p = Process(
-            target=sandbox, args=(q, c_lib, self.target_function, cffi_input))
-        p.start()
-        p.join()
+        if self.sandbox:
+            q = Queue()
+            p = Process(
+                target=sandbox, args=(q, c_lib, self.target_function, cffi_input))
+            p.start()
+            p.join()
 
-        trace = q.get() if p.exitcode == 0 else []
+            trace = q.get() if p.exitcode == 0 else []
+        else:
+            c_function = getattr(c_lib, self.target_function)
+            c_function(*cffi_input)
+            trace = get_trace(c_lib)
 
         return trace
 
@@ -181,7 +187,6 @@ class ObjFunc:
             app_lv = divpoint[1]
             branch_dist = trace[divpoint[0]][3] if divpoint[2] == 0 else trace[
                 divpoint[0]][2]
-
         fitness = [app_lv, branch_dist]
         # self.dictionary[inputtuple] = fitness
         return fitness
