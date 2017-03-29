@@ -11,7 +11,7 @@ double strcmp2(const char *p1, const char *p2)
     for (; *s1 != '\0' && *s2 != '\0'; s1++, s2++) {
         distance += charDistance(*s1, *s2);
     }
-    lengthDiff = (int)abs(strlen(p1) - strlen(p2));
+    lengthDiff = abs((int)(strlen(p1) - strlen(p2)));
     distance += lengthDiff;
     return distance;
 }
