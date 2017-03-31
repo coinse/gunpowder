@@ -145,7 +145,7 @@ def search(argv):
         for decl in decls:
             ffi.cdef(decls[decl][0])
 
-        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls, args.sandbox)
         set_search_params(c_input, args.min, args.max, args.prec)
         print(avm.search(obj, c_input, branchlist, args.termination))
 
@@ -212,7 +212,7 @@ def run(argv):
         for decl in decls:
             ffi.cdef(decls[decl][0])
 
-        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls)
+        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls, args.sandbox)
         set_search_params(c_input, args.min, args.max, args.prec)
         print(avm.search(obj, c_input, branchlist, args.termination))
 
