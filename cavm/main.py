@@ -16,6 +16,7 @@ from cavm import clang
 from cavm import commands
 from cavm import ctype
 from cavm import evaluation
+from cavm import report
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
 STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
@@ -80,146 +81,123 @@ def main():
     opts, args = command_parser.parse_known_args()
 
     if opts.command == 'instrument':
-        instrument(args)
+        run_instrument(args)
     elif opts.command == 'search':
-        search(args)
+        run_search(args)
     elif opts.command == 'run':
         run(args)
 
 
-def instrument(argv):
+def instrument(c_parser, target_file, target_function):
+    if target_function:
+        cfg = c_parser.instrument(target_function)
+        shutil.copy(CAVM_HEADER, path.dirname(target_file))
+        shutil.copy(STRCMP2, path.dirname(target_file))
+    else:
+        print('Specify the target function using -f option.')
+        print('Functions in %s:' % target_file)
+        c_parser.print_functions()
+        sys.exit()
+    return cfg
+
+
+def search(c_parser, cfg, target_function, dlib, args):
+
+    decl, params = c_parser.get_decl(target_function)
+    ffi = FFI()
+    ffi.cdef(decl)
+
+    with open(CAVM_HEADER, 'r') as f:
+        lines = f.readlines()
+        ffi.cdef(''.join(lines[13:22]))
+
+    node_num = len(cfg.keys())
+    if args.branch != None:
+        predicate = args.branch[-1] == "T" or args.branch[-1] == "t"
+        targetbranch = [int(args.branch[:-1]), predicate]
+        branchlist = [targetbranch]
+    else:
+        branchlist = [
+            branch
+            for node in reversed(range(node_num))
+            for branch in ([node, False], [node, True])
+        ]
+
+    decls = get_decl_dict(params, c_parser)
+    c_input = []
+    for parameter in params:
+        c_type = ctype.make_CType(parameter, decls)
+        c_input.append(c_type)
+
+    for decl in decls:
+        ffi.cdef(decls[decl][0])
+
+    obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, params, decls, args.sandbox)
+    set_search_params(c_input, args.min, args.max, args.prec)
+    result = avm.search(obj, c_input, branchlist, args.termination)
+    if args.coverage:
+        report.coverage(ffi, args.coverage, args.function, result)
+    print(report.make_JSON(result))
+
+
+def run_instrument(argv):
     cmd = commands.Instrument()
     parser = argparse.ArgumentParser(description=cmd.description)
     cmd.add_args(parser)
     args = parser.parse_args(argv)
-    parser = clang.Parser(args.target, args.flags)
-    if args.function:
-        parser.instrument(args.function)
-        shutil.copy(CAVM_HEADER, path.dirname(args.target))
-    else:
-        print('Specify the target function using -f option.')
-        print('Functions in %s:' % args.target)
-        parser.print_functions()
-    return
+    c_parser = clang.Parser(args.target, args.flags)
+    instrument(c_parser, args.target, args.function)
+    name, _ = path.splitext(args.target)
+    print('%s.inst.c is created.' % name)
 
 
-def search(argv):
+def run_search(argv):
     cmd = commands.Search()
     parser = argparse.ArgumentParser(description=cmd.description)
     cmd.add_args(parser)
     args = parser.parse_args(argv)
 
-    parser = clang.Parser(args.target, args.flags)
+    c_parser = clang.Parser(args.target, args.flags)
+    cfg = get_dep_map(instrument(c_parser, args.target, args.function))
 
-    if args.function:
-        name, _ = path.splitext(args.target)
-        dlib = args.binary
-        cfg = get_dep_map(parser.instrument(args.function))
-
-        decl, params = parser.get_decl(args.function)
-        ffi = FFI()
-        ffi.cdef(decl)
-
-        with open(CAVM_HEADER, 'r') as f:
-            lines = f.readlines()
-            ffi.cdef(''.join(lines[13:22]))
-
-        node_num = len(cfg.keys())
-        if args.branch != None:
-            predicate = args.branch[-1] == "T" or args.branch[-1] == "t"
-            targetbranch = [int(args.branch[:-1]), predicate]
-            branchlist = [targetbranch]
-        else:
-            branchlist = [
-                branch
-                for node in reversed(range(node_num))
-                for branch in ([node, False], [node, True])
-            ]
-
-        decls = get_decl_dict(params, parser)
-        c_input = []
-        for parameter in params:
-            c_type = ctype.make_CType(parameter, decls)
-            c_input.append(c_type)
-
-        for decl in decls:
-            ffi.cdef(decls[decl][0])
-
-        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls, args.sandbox)
-        set_search_params(c_input, args.min, args.max, args.prec)
-        print(avm.search(obj, c_input, branchlist, args.termination))
-
-    else:
-        print('Specify the target function using -f option.')
-        print('Functions in %s:' % args.target)
-        parser.print_functions()
+    search(c_parser, cfg, args.function, args.binary, args)
 
 
 def run(argv):
     cmd = commands.Run()
-    arg_parser = argparse.ArgumentParser(
-        description='Run CAVM without own build chain')
-    cmd.add_args(arg_parser)
-    args = arg_parser.parse_args(argv)
+    parser = argparse.ArgumentParser(description=cmd.description)
+    cmd.add_args(parser)
+    args = parser.parse_args(argv)
 
-    parser = clang.Parser(args.target, args.flags)
+    c_parser = clang.Parser(args.target, args.flags)
+    cfg = get_dep_map(instrument(c_parser, args.target, args.function))
 
-    if args.function:
-        name, _ = path.splitext(args.target)
-        dlib = name + '.so'
-        cfg = get_dep_map(parser.instrument(args.function))
-        shutil.copy(CAVM_HEADER, path.dirname(args.target))
-        shutil.copy(STRCMP2, path.dirname(args.target))
-        # End of Instrumentation
+    name, _ = path.splitext(args.target)
+    dlib = name + '.so'
+    proc = subprocess.run([
+        'gcc',
+        '-fPIC',
+        '-shared',
+        '-o',
+        dlib,
+        name + '.inst.c',
+    ])
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
+    args.coverage = name + '.gcov.so'
+    proc = subprocess.run([
+        'gcc',
+        '-fPIC',
+        '-shared',
+        '--coverage',
+        '-o',
+        args.coverage,
+        args.target,
+    ])
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
 
-        proc = subprocess.run([
-            'gcc',
-            '-fPIC',
-            '-shared',
-            '-o',
-            dlib,
-            name + '.inst.c',
-        ])
-        if proc.returncode != 0:
-            sys.exit(proc.returncode)
-
-        decl, params = parser.get_decl(args.function)
-        ffi = FFI()
-        ffi.cdef(decl)
-
-        with open(CAVM_HEADER, 'r') as f:
-            lines = f.readlines()
-            ffi.cdef(''.join(lines[13:22]))
-
-        node_num = len(cfg.keys())
-        if args.branch != None:
-            predicate = args.branch[-1] == "T" or args.branch[-1] == "t"
-            targetbranch = [int(args.branch[:-1]), predicate]
-            branchlist = [targetbranch]
-        else:
-            branchlist = [
-                branch
-                for node in reversed(range(node_num))
-                for branch in ([node, False], [node, True])
-            ]
-
-        decls = get_decl_dict(params, parser)
-        c_input = []
-        for parameter in params:
-            c_type = ctype.make_CType(parameter, decls)
-            c_input.append(c_type)
-
-        for decl in decls:
-            ffi.cdef(decls[decl][0])
-
-        obj = evaluation.ObjFunc(args.function, dlib, ffi, cfg, params, decls, args.sandbox)
-        set_search_params(c_input, args.min, args.max, args.prec)
-        print(avm.search(obj, c_input, branchlist, args.termination))
-
-    else:
-        print('Specify the target function using -f option.')
-        print('Functions in %s:' % args.target)
-        parser.print_functions()
+    search(c_parser, cfg, args.function, dlib, args)
 
 
 if __name__ == '__main__':
