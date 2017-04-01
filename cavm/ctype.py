@@ -267,6 +267,8 @@ def c_type_factory(raw_type):
 
 
 def make_CType(c_type, decl_dict, stop_recursion=False):
+    if c_type[:6] == 'const ':
+        c_type = c_type[6:]
     if c_type[-1:] == '*':
         #if stop_recursion:
         return CPointer(c_type[:-1].strip())
