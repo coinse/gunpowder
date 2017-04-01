@@ -138,6 +138,7 @@ def search(c_parser, cfg, target_function, dlib, args):
     if args.coverage:
         report.coverage(ffi, args.coverage, args.function, result)
     print(report.make_JSON(result))
+    report.make_csv(result, target_function)
 
 
 def run_instrument(argv):
