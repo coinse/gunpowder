@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 
 #include "ControlDependency.h"
@@ -61,9 +62,42 @@ int MyASTVisitor::assignDep(clang::Stmt *s, clang::Stmt *parent, bool cond) {
 void MyASTVisitor::insertbranchlog(clang::Expr *Cond, int stmtid) {
   if (Cond != nullptr) {
     std::string str;
+    bool valueToBool = false;
     llvm::raw_string_ostream S(str);
     S << "inst(" << stmtid << ", ";
-    convertCompositePredicate(Cond, S, TheRewriter);
+    if (clang::isa<clang::BinaryOperator>(Cond)) {
+      clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(Cond);
+      clang::BinaryOperator::Opcode Opc = o->getOpcode();
+      switch (Opc) {
+      case clang::BO_Mul:
+      case clang::BO_Div:
+      case clang::BO_Rem:
+      case clang::BO_Add:
+      case clang::BO_Sub:
+      case clang::BO_Shl:
+      case clang::BO_Shr:
+      case clang::BO_And:
+      case clang::BO_Xor:
+      case clang::BO_Or:
+        valueToBool = true;
+        break;
+      default:
+        convertCompositePredicate(Cond, S, TheRewriter);
+      }
+    } else {
+      valueToBool = true;
+    }
+    if (valueToBool) {
+      S << "isNotEqual(";
+      if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
+        S << "(void *)";
+      Cond->printPretty(S, nullptr,
+                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
+      if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
+        S << ", NULL)";
+      else
+        S << ", 0)";
+    }
     S << ")";
     TheRewriter.ReplaceText(
         (TheRewriter.getSourceMgr()).getExpansionRange(Cond->getSourceRange()),
@@ -77,6 +111,7 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
   if (clang::isa<clang::BinaryOperator>(Cond)) {
     clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(Cond);
     clang::BinaryOperator::Opcode Opc = o->getOpcode();
+    bool checkOperands = false;
     switch (Opc) {
     case clang::BO_GT:
       S << "isGreater(";
@@ -98,39 +133,47 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
       break;
     case clang::BO_LAnd:
       S << "l_and(";
+      checkOperands = true;
       break;
     case clang::BO_LOr:
       S << "l_or(";
+      checkOperands = true;
       break;
     default:
       Cond->printPretty(S, nullptr,
                         clang::PrintingPolicy(TheRewriter.getLangOpts()));
       return;
     }
-    if (clang::isa<clang::PointerType>(o->getLHS()->getType()))
-      S << "(int)";
-    convertCompositePredicate(o->getLHS(), S, TheRewriter);
-    S << ", ";
-    if (clang::isa<clang::PointerType>(o->getRHS()->getType()))
-      S << "(int)";
-    convertCompositePredicate(o->getRHS(), S, TheRewriter);
-    S << ")";
-  } else if (clang::isa<clang::ImplicitCastExpr>(Cond)) {
-    clang::ImplicitCastExpr *c = clang::dyn_cast<clang::ImplicitCastExpr>(Cond);
-    switch (c->getCastKind()) {
-    case clang::CK_MemberPointerToBoolean:
-    case clang::CK_PointerToBoolean:
-    case clang::CK_IntegralToBoolean:
-    case clang::CK_FloatingToBoolean:
-    case clang::CK_FloatingComplexToBoolean:
+    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getLHS())) {
       S << "isNotEqual(";
-      Cond->printPretty(S, nullptr,
-                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
+      if (clang::isa<clang::PointerType>(
+              o->getLHS()->getType().getCanonicalType()))
+        S << "(void *)";
+      o->getLHS()->printPretty(
+          S, nullptr, clang::PrintingPolicy(TheRewriter.getLangOpts()));
       S << ", 0)";
-      break;
-    default:
-      convertCompositePredicate(c->getSubExpr(), S, TheRewriter);
+    } else {
+      if (clang::isa<clang::PointerType>(
+              o->getLHS()->getType().getCanonicalType()))
+        S << "(void *)";
+      convertCompositePredicate(o->getLHS(), S, TheRewriter);
     }
+    S << ", ";
+    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getRHS())) {
+      S << "isNotEqual(";
+      if (clang::isa<clang::PointerType>(
+              o->getRHS()->getType().getCanonicalType()))
+        S << "(void *)";
+      o->getLHS()->printPretty(
+          S, nullptr, clang::PrintingPolicy(TheRewriter.getLangOpts()));
+      S << ", 0)";
+    } else {
+      if (clang::isa<clang::PointerType>(
+              o->getRHS()->getType().getCanonicalType()))
+        S << "(void *)";
+      convertCompositePredicate(o->getRHS(), S, TheRewriter);
+    }
+    S << ")";
   } else if (clang::isa<clang::UnaryOperator>(Cond)) {
     clang::UnaryOperator *o = clang::dyn_cast<clang::UnaryOperator>(Cond);
     clang::UnaryOperator::Opcode Opc = o->getOpcode();
@@ -174,23 +217,24 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
     clang::ParenExpr *o = clang::dyn_cast<clang::ParenExpr>(Cond);
     convertCompositePredicate(o->getSubExpr(), S, TheRewriter);
   } else if (clang::isa<clang::CallExpr>(Cond)) {
-      clang::CallExpr *c = clang::dyn_cast<clang::CallExpr>(Cond);
-      clang::FunctionDecl *f = clang::dyn_cast<clang::CallExpr>(Cond)->getDirectCallee();
-      std::string funcName = f->getNameInfo().getName().getAsString();
-      if (funcName == "strcmp") {
-        S << "strcmp2(";
-        for (auto &it : c->arguments()){
-          if (it != *(c->arg_begin()))
-            S << ", ";
-          it->printPretty(S, nullptr,
-              clang::PrintingPolicy(TheRewriter.getLangOpts()));
-        }
-        S << ")";
-
-      } else {
-        Cond->printPretty(S, nullptr,
-            clang::PrintingPolicy(TheRewriter.getLangOpts()));
+    clang::CallExpr *c = clang::dyn_cast<clang::CallExpr>(Cond);
+    clang::FunctionDecl *f =
+        clang::dyn_cast<clang::CallExpr>(Cond)->getDirectCallee();
+    std::string funcName = f->getNameInfo().getName().getAsString();
+    if (funcName == "strcmp") {
+      S << "strcmp2(";
+      for (auto &it : c->arguments()) {
+        if (it != *(c->arg_begin()))
+          S << ", ";
+        it->printPretty(S, nullptr,
+                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
       }
+      S << ")";
+
+    } else {
+      Cond->printPretty(S, nullptr,
+                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
+    }
   } else {
     Cond->printPretty(S, nullptr,
                       clang::PrintingPolicy(TheRewriter.getLangOpts()));
