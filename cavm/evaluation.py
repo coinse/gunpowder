@@ -139,7 +139,7 @@ class ObjFunc:
         self.target_branch_id = branch_id
         self.dependency_chain = get_dep_chain(self.cfg, branch_id)
 
-    def execute(self, c_input):
+    def execute(self, c_input, no_trace=False):
         """execute target function"""
         self.counter += 1
 
@@ -151,7 +151,10 @@ class ObjFunc:
         def sandbox(q, lib, target, inputs):
             c_function = getattr(lib, target)
             c_function(*inputs)
-            q.put(get_trace(lib))
+            if no_trace:
+                q.put([])
+            else:
+                q.put(get_trace(lib))
 
         c_lib = self.ffi.dlopen(self.dlib)
         cffi_input = self.make_cffi_input(c_input)
@@ -166,7 +169,10 @@ class ObjFunc:
         else:
             c_function = getattr(c_lib, self.target_function)
             c_function(*cffi_input)
-            trace = get_trace(c_lib)
+            if no_trace:
+                trace = []
+            else:
+                trace = get_trace(c_lib)
 
         return trace
 

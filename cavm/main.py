@@ -135,9 +135,9 @@ def search(c_parser, cfg, target_function, dlib, args):
     obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, params, decls, args.sandbox)
     set_search_params(c_input, args.min, args.max, args.prec)
     result = avm.search(obj, c_input, branchlist, args.termination)
+    print(report.make_JSON(result))
     if args.coverage:
         report.coverage(ffi, args.coverage, args.function, result)
-    print(report.make_JSON(result))
     report.make_csv(result, target_function)
 
 
