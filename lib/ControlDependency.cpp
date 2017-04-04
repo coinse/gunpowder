@@ -95,47 +95,68 @@ int MyASTVisitor::assignDep(clang::Stmt *s, clang::Stmt *parent, bool cond) {
 void MyASTVisitor::insertbranchlog(clang::Expr *Cond, int stmtid) {
   if (Cond != nullptr) {
     std::string str;
-    bool valueToBool = false;
     llvm::raw_string_ostream S(str);
     S << "inst(" << stmtid << ", ";
-    if (clang::isa<clang::BinaryOperator>(Cond)) {
-      clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(Cond);
-      clang::BinaryOperator::Opcode Opc = o->getOpcode();
-      switch (Opc) {
-      case clang::BO_Mul:
-      case clang::BO_Div:
-      case clang::BO_Rem:
-      case clang::BO_Add:
-      case clang::BO_Sub:
-      case clang::BO_Shl:
-      case clang::BO_Shr:
-      case clang::BO_And:
-      case clang::BO_Xor:
-      case clang::BO_Or:
-        valueToBool = true;
-        break;
-      default:
-        convertCompositePredicate(Cond, S, TheRewriter);
-      }
-    } else {
-      valueToBool = true;
-    }
-    if (valueToBool) {
-      S << "isNotEqual(";
-      if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
-        S << "(void *)";
-      Cond->printPretty(S, nullptr,
-                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
-      if (clang::isa<clang::PointerType>(Cond->getType().getCanonicalType()))
-        S << ", NULL)";
-      else
-        S << ", 0)";
-    }
+    handleImplicitCasting(Cond, S, TheRewriter);
     S << ")";
     TheRewriter.ReplaceText(
         (TheRewriter.getSourceMgr()).getExpansionRange(Cond->getSourceRange()),
         S.str());
   }
+}
+
+void MyASTVisitor::makeUntypedPointer(clang::Expr *expr,
+                                      llvm::raw_string_ostream &S,
+                                      clang::Rewriter rewriter) {
+  if (clang::isa<clang::PointerType>(expr->getType().getCanonicalType()))
+    S << "(void *)";
+}
+
+void MyASTVisitor::handleImplicitCasting(clang::Expr *expr,
+                                         llvm::raw_string_ostream &S,
+                                         clang::Rewriter rewriter) {
+  if (clang::isa<clang::ParenExpr>(expr)) {
+    clang::ParenExpr *e = clang::dyn_cast<clang::ParenExpr>(expr);
+    return handleImplicitCasting(e->getSubExpr(), S, rewriter);
+  }
+
+  if (clang::isa<clang::BinaryOperator>(expr)) {
+    clang::BinaryOperator *o = clang::dyn_cast<clang::BinaryOperator>(expr);
+    clang::BinaryOperator::Opcode Opc = o->getOpcode();
+    switch (Opc) {
+    case clang::BO_Mul:
+    case clang::BO_Div:
+    case clang::BO_Rem:
+    case clang::BO_Add:
+    case clang::BO_Sub:
+    case clang::BO_Shl:
+    case clang::BO_Shr:
+    case clang::BO_And:
+    case clang::BO_Xor:
+    case clang::BO_Or:
+      break;
+    default:
+      makeUntypedPointer(expr, S, rewriter);
+      return convertCompositePredicate(expr, S, rewriter);
+    }
+  }
+  if (clang::isa<clang::UnaryOperator>(expr)) {
+    clang::UnaryOperator *o = clang::dyn_cast<clang::UnaryOperator>(expr);
+    clang::UnaryOperator::Opcode Opc = o->getOpcode();
+    if (Opc == clang::UO_LNot) {
+      S << "l_not(";
+      handleImplicitCasting(o->getSubExpr(), S, rewriter);
+      S << ")";
+      return;
+    }
+  }
+  S << "isNotEqual(";
+  makeUntypedPointer(expr, S, rewriter);
+  expr->printPretty(S, nullptr, clang::PrintingPolicy(rewriter.getLangOpts()));
+  if (clang::isa<clang::PointerType>(expr->getType().getCanonicalType()))
+    S << ", NULL)";
+  else
+    S << ", 0)";
 }
 
 void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
@@ -177,33 +198,17 @@ void MyASTVisitor::convertCompositePredicate(clang::Expr *Cond,
                         clang::PrintingPolicy(TheRewriter.getLangOpts()));
       return;
     }
-    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getLHS())) {
-      S << "isNotEqual(";
-      if (clang::isa<clang::PointerType>(
-              o->getLHS()->getType().getCanonicalType()))
-        S << "(void *)";
-      o->getLHS()->printPretty(
-          S, nullptr, clang::PrintingPolicy(TheRewriter.getLangOpts()));
-      S << ", 0)";
+    if (checkOperands) {
+      handleImplicitCasting(o->getLHS(), S, TheRewriter);
     } else {
-      if (clang::isa<clang::PointerType>(
-              o->getLHS()->getType().getCanonicalType()))
-        S << "(void *)";
+      makeUntypedPointer(o->getLHS(), S, TheRewriter);
       convertCompositePredicate(o->getLHS(), S, TheRewriter);
     }
     S << ", ";
-    if (checkOperands && !clang::isa<clang::BinaryOperator>(o->getRHS())) {
-      S << "isNotEqual(";
-      if (clang::isa<clang::PointerType>(
-              o->getRHS()->getType().getCanonicalType()))
-        S << "(void *)";
-      o->getLHS()->printPretty(
-          S, nullptr, clang::PrintingPolicy(TheRewriter.getLangOpts()));
-      S << ", 0)";
+    if (checkOperands) {
+      handleImplicitCasting(o->getRHS(), S, TheRewriter);
     } else {
-      if (clang::isa<clang::PointerType>(
-              o->getRHS()->getType().getCanonicalType()))
-        S << "(void *)";
+      makeUntypedPointer(o->getRHS(), S, TheRewriter);
       convertCompositePredicate(o->getRHS(), S, TheRewriter);
     }
     S << ")";
