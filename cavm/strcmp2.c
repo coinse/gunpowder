@@ -11,5 +11,8 @@ double strcmp2(const char *p1, const char *p2) {
   }
   lengthDiff = abs((int)(strlen(p1) - strlen(p2)));
   distance = lengthDiff + (1 - pow(1.001, -charDiff));
+  int original_result = strcmp(p1, p2);
+  int sign = (original_result > 0) - (original_result < 0);
+  distance = sign * distance;
   return distance;
 }
