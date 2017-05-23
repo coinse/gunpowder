@@ -17,7 +17,7 @@ class MyASTConsumer : public clang::ASTConsumer {
 public:
   MyASTConsumer(llvm::StringRef functionName, clang::Rewriter &R,
                 ControlDependency &out)
-      : target(functionName), Visitor(R, out) {}
+      : Visitor(R, out), target(functionName) {}
   virtual bool HandleTopLevelDecl(clang::DeclGroupRef DR);
 
   MyASTVisitor Visitor;
