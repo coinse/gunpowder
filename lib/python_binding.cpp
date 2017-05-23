@@ -30,7 +30,7 @@ static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
   opts.push_back("clang");
   opts.push_back("input.c");
   opts.push_back("--");
-  while (item = PyIter_Next(iterator)) {
+  while ((item = PyIter_Next(iterator))) {
     s = PyUnicode_AsUTF8(item);
     opts.push_back(s);
     Py_DECREF(item);
