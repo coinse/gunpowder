@@ -30,7 +30,7 @@ static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
   opts.push_back("clang");
   opts.push_back("input.c");
   opts.push_back("--");
-  while (item = PyIter_Next(iterator)) {
+  while ((item = PyIter_Next(iterator))) {
     s = PyUnicode_AsUTF8(item);
     opts.push_back(s);
     Py_DECREF(item);
@@ -89,7 +89,7 @@ static PyMethodDef methods[] = {
      "Get declaration given function."},
     {"print_functions", (PyCFunction)Parser_printFunctions, METH_NOARGS,
      "Get list of functions."},
-    {NULL}};
+    {}};
 
 static PyType_Slot CAVMTypeSlots[] = {
     {Py_tp_dealloc, reinterpret_cast<void *>(Parser_dealloc)},
@@ -102,7 +102,7 @@ static PyType_Spec CAVMTypeSpec = {"cavm.clang.Parser", sizeof(Parser), 0,
                                    CAVMTypeSlots};
 
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "cavm.clang", NULL,
-                                    -1, NULL};
+                                    -1, NULL, NULL, NULL, NULL, NULL};
 
 static PyTypeObject *ParserType = NULL;
 
