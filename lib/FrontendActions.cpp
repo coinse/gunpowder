@@ -10,6 +10,10 @@ void MyFrontendAction::EndSourceFileAction() {
       r.getRewriteBufferFor(r.getSourceMgr().getMainFileID());
   std::string f = std::string(this->getCurrentFile());
   std::string filename = f.substr(0, f.find_last_of('.'));
+  std::string fr_str = ".c_first_round";
+  size_t i = filename.find(fr_str);
+  if (i != std::string::npos)
+    filename = filename.substr(0, i).append(filename.substr(i + fr_str.length(), filename.size()));
   filename = filename + ".inst.c";
   std::ofstream out(filename.c_str());
   out << std::string(RewriteBuf->begin(), RewriteBuf->end());
