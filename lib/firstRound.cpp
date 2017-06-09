@@ -8,17 +8,17 @@
 // This code is in the public domain
 //------------------------------------------------------------------------------
 #include <cstdio>
+#include <fstream>
 #include <memory>
 #include <sstream>
-#include <fstream>
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
-#include "clang/Basic/TargetOptions.h"
 #include "clang/Basic/TargetInfo.h"
+#include "clang/Basic/TargetOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Parse/ParseAST.h"
@@ -34,102 +34,103 @@ using namespace clang;
 // By implementing RecursiveASTVisitor, we can specify which AST nodes
 // we're interested in by overriding relevant methods.
 class AddCodeASTVisitor : public RecursiveASTVisitor<AddCodeASTVisitor> {
-public:
-  AddCodeASTVisitor(Rewriter &R) : TheRewriter(R) {}
+ public:
+  explicit AddCodeASTVisitor(Rewriter &R) : TheRewriter(R) {}
 
   bool VisitStmt(clang::Stmt *s) {
-      if (clang::isa<clang::SwitchStmt>(s)) {
-          clang::SwitchStmt *F = clang::cast<clang::SwitchStmt>(s);
-          clang::SwitchCase *cases = F->getSwitchCaseList();
-          clang::Expr *Cond = F->getCond();
+    if (clang::isa<clang::SwitchStmt>(s)) {
+      clang::SwitchStmt *F = clang::cast<clang::SwitchStmt>(s);
+      clang::SwitchCase *cases = F->getSwitchCaseList();
+      clang::Expr *Cond = F->getCond();
 
-          clang::QualType cond_type = Cond->getType();
-          std::string str = "";
-          llvm::raw_string_ostream temp(str);
-          Cond->printPretty(temp, nullptr,
+      clang::QualType cond_type = Cond->getType();
+      std::string str = "";
+      llvm::raw_string_ostream temp(str);
+      Cond->printPretty(temp, nullptr,
+                        clang::PrintingPolicy(TheRewriter.getLangOpts()));
+      std::string SWITCH_TEMPORARY_VARIABLE =
+          "__ins_switch_temp" +
+          std::to_string(F->getLocStart().getRawEncoding());
+      std::string lines = "";
+      clang::SwitchCase *next_case = cases->getNextSwitchCase();
+      while (cases != next_case && next_case &&
+             clang::cast<clang::CaseStmt>(next_case)->getSubStmt() ==
+                 cases) {  // rewinding
+        cases = next_case;
+        next_case = cases->getNextSwitchCase();
+      }
+      while (cases) {
+        if (clang::CaseStmt::classof(cases)) {
+          std::string predicate = "";
+          clang::CaseStmt *case_stmt = clang::cast<clang::CaseStmt>(cases);
+          predicate += SWITCH_TEMPORARY_VARIABLE + " == ";
+          std::string str2 = "";
+          llvm::raw_string_ostream temp_stream2(str2);
+          case_stmt->getLHS()->printPretty(
+              temp_stream2, nullptr,
+              clang::PrintingPolicy(TheRewriter.getLangOpts()));
+          predicate += temp_stream2.str();
+          clang::Stmt *sub_stmt = cases->getSubStmt();
+          while (sub_stmt && !clang::BreakStmt::classof(sub_stmt) &&
+                 !clang::ReturnStmt::classof(sub_stmt)) {
+            if (clang::CaseStmt::classof(sub_stmt)) {
+              predicate =
+                  predicate + " || " + SWITCH_TEMPORARY_VARIABLE + " == ";
+              std::string str3 = "";
+              llvm::raw_string_ostream temp_stream3(str3);
+              clang::cast<clang::CaseStmt>(sub_stmt)->getLHS()->printPretty(
+                  temp_stream3, nullptr,
                   clang::PrintingPolicy(TheRewriter.getLangOpts()));
-          std::string SWITCH_TEMPORARY_VARIABLE =
-              "__ins_switch_temp" + std::to_string(F->getLocStart().getRawEncoding());
-          std::string lines = "";
-          clang::SwitchCase *next_case = cases->getNextSwitchCase();
-          while (cases != next_case && next_case &&
-                  clang::cast<clang::CaseStmt>(next_case)->getSubStmt() ==
-                  cases) {  // rewinding
-              cases = next_case;
-              next_case = cases->getNextSwitchCase();
-          }
-          while (cases) {
-              if (clang::CaseStmt::classof(cases)) {
-                  std::string predicate = "";
-                  clang::CaseStmt *case_stmt = clang::cast<clang::CaseStmt>(cases);
-                  predicate += SWITCH_TEMPORARY_VARIABLE + " == ";
-                  std::string str2 = "";
-                  llvm::raw_string_ostream temp_stream2(str2);
-                  case_stmt->getLHS()->printPretty(
-                          temp_stream2, nullptr,
-                          clang::PrintingPolicy(TheRewriter.getLangOpts()));
-                  predicate += temp_stream2.str();
-                  clang::Stmt *sub_stmt = cases->getSubStmt();
-                  while (sub_stmt && !clang::BreakStmt::classof(sub_stmt) &&
-                          !clang::ReturnStmt::classof(sub_stmt)) {
-                      if (clang::CaseStmt::classof(sub_stmt)) {
-                          predicate = predicate + " || " +
-                              SWITCH_TEMPORARY_VARIABLE + " == ";
-                          std::string str3 = "";
-                          llvm::raw_string_ostream temp_stream3(str3);
-                          clang::cast<clang::CaseStmt>(sub_stmt)->getLHS()->printPretty(
-                                  temp_stream3, nullptr,
-                                  clang::PrintingPolicy(TheRewriter.getLangOpts()));
-                          predicate += temp_stream3.str();
-                          sub_stmt = clang::cast<clang::CaseStmt>(sub_stmt)->getSubStmt();
-                      } else if (clang::DefaultStmt::classof(sub_stmt)) {
-                          predicate = predicate + " || " + "0 == 0";
-                          sub_stmt = nullptr;
-                      }
-                  }
-
-                  lines = "if (" + predicate + ") { }\n" + lines;
-              } else if (clang::DefaultStmt::classof(cases)) {
-                  lines = "{ }\n" + lines;
-              }
-              next_case = cases->getNextSwitchCase();
-              if (cases == next_case || !next_case) break;
-              lines = "else " + lines;
-              cases = next_case;
-              next_case = cases->getNextSwitchCase();
-              while (cases != next_case && next_case &&
-                      clang::cast<clang::CaseStmt>(next_case)->getSubStmt() ==
-                      cases) {  // rewinding
-                  cases = next_case;
-                  next_case = cases->getNextSwitchCase();
-              }
+              predicate += temp_stream3.str();
+              sub_stmt = clang::cast<clang::CaseStmt>(sub_stmt)->getSubStmt();
+            } else if (clang::DefaultStmt::classof(sub_stmt)) {
+              predicate = predicate + " || " + "0 == 0";
+              sub_stmt = nullptr;
+            }
           }
 
-          lines = cond_type.getAsString() + " " + SWITCH_TEMPORARY_VARIABLE + " = " +
-              temp.str() + ";\n" + lines;
-          lines = "{\n" + lines;
-          clang::SourceLocation ST = F->getSwitchLoc();
-          TheRewriter.InsertText(ST, lines, true, true);
-          ST = F->getBody()->getLocEnd().getLocWithOffset(1);
-          TheRewriter.InsertText(ST, "\n}", true, true);
-
-          TheRewriter.ReplaceText(
-                  (TheRewriter.getSourceMgr()).getExpansionRange(Cond->getSourceRange()),
-                  SWITCH_TEMPORARY_VARIABLE);
+          lines = "if (" + predicate + ") { }\n" + lines;
+        } else if (clang::DefaultStmt::classof(cases)) {
+          lines = "{ }\n" + lines;
+        }
+        next_case = cases->getNextSwitchCase();
+        if (cases == next_case || !next_case) break;
+        lines = "else " + lines;
+        cases = next_case;
+        next_case = cases->getNextSwitchCase();
+        while (cases != next_case && next_case &&
+               clang::cast<clang::CaseStmt>(next_case)->getSubStmt() ==
+                   cases) {  // rewinding
+          cases = next_case;
+          next_case = cases->getNextSwitchCase();
+        }
       }
 
-      return true;
+      lines = cond_type.getAsString() + " " + SWITCH_TEMPORARY_VARIABLE +
+              " = " + temp.str() + ";\n" + lines;
+      lines = "{\n" + lines;
+      clang::SourceLocation ST = F->getSwitchLoc();
+      TheRewriter.InsertText(ST, lines, true, true);
+      ST = F->getBody()->getLocEnd().getLocWithOffset(1);
+      TheRewriter.InsertText(ST, "\n}", true, true);
+
+      TheRewriter.ReplaceText((TheRewriter.getSourceMgr())
+                                  .getExpansionRange(Cond->getSourceRange()),
+                              SWITCH_TEMPORARY_VARIABLE);
+    }
+
+    return true;
   }
 
-private:
+ private:
   Rewriter &TheRewriter;
 };
 
 // Implementation of the ASTConsumer interface for reading an AST produced
 // by the Clang parser.
 class AddCodeASTConsumer : public ASTConsumer {
-public:
-  AddCodeASTConsumer(Rewriter &R) : Visitor(R) {}
+ public:
+  explicit AddCodeASTConsumer(Rewriter &R) : Visitor(R) {}
 
   // Override the method that gets called for each parsed top-level
   // declaration.
@@ -140,7 +141,7 @@ public:
     return true;
   }
 
-private:
+ private:
   AddCodeASTVisitor Visitor;
 };
 

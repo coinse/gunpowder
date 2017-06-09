@@ -5,4 +5,4 @@
 
 int firstRound(std::string infilename);
 
-#endif // __FIRSTROUND_H__
+#endif  // __FIRSTROUND_H__
