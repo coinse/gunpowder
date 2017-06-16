@@ -84,12 +84,14 @@ class AddCodeASTVisitor : public RecursiveASTVisitor<AddCodeASTVisitor> {
               predicate += temp_stream3.str();
               sub_stmt = clang::cast<clang::CaseStmt>(sub_stmt)->getSubStmt();
             } else if (clang::DefaultStmt::classof(sub_stmt)) {
-              predicate = predicate + " || " + "0 == 0";
               sub_stmt = nullptr;
             }
           }
 
-          lines = "if (" + predicate + ") { }\n" + lines;
+          if (sub_stmt)
+            lines = "if (" + predicate + ") { }\n" + lines;
+          else  // default
+            lines = "{  }\n" + lines;
         } else if (clang::DefaultStmt::classof(cases)) {
           lines = "{ }\n" + lines;
         }
