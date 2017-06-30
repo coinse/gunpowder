@@ -73,8 +73,28 @@ bool FunctionConsumer::HandleTopLevelDecl(clang::DeclGroupRef DR) {
   for (clang::DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e;
        ++b) {
     if (clang::FunctionDecl *f = clang::dyn_cast<clang::FunctionDecl>(*b)) {
-      decls.push_back(f->getNameAsString());
-      std::cout << "\t" << f->getNameAsString() << std::endl;
+      if (f->hasBody()) {
+        decls.push_back(f->getNameAsString());
+        std::stringstream ss;
+        ss << clang::QualType::getAsString(
+                  f->getReturnType().getCanonicalType().split())
+           << ' ';
+        ss << f->getNameAsString();
+        ss << '(';
+        int i = 0;
+        for (auto &it : f->parameters()) {
+          if (i > 0)
+            ss << ", ";
+          std::string t = clang::QualType::getAsString(
+              it->getType().getCanonicalType().split());
+          ss << t << ' ';
+          ss << it->getNameAsString();
+
+          i++;
+        }
+        ss << ");";
+        std::cout << "\t" << ss.str() << std::endl;
+      }
     }
   }
   return true;
