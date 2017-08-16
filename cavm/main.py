@@ -33,7 +33,7 @@ def get_dep_map(dep_list):
         elif i[0] == i[1]:
             wte[-i[0]] = [[-i[1], i[2]]]
     for b in reversed(sorted(dep_map)):
-        if b not in wte.keys():
+        if b not in wte:
             # initialize
             wte[b] = []
         dep_size = len(wte[b])

@@ -57,7 +57,8 @@ def get_dep_chain(dependency_map, exit_flow, targetbranch):
                     dep_chain.append([e[0], not e[1]])
         dep_chain.append(parent)
         nodeid = parent[0]
-    return dep_chain
+
+    return sorted(dep_chain, key=lambda x: x[0], reverse=True)
 
 
 def get_divergence_point(trace, dependency_chain):
