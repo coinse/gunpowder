@@ -180,6 +180,7 @@ int firstRound(std::string infilename) {
   // ParseAST.
   AddCodeASTConsumer TheConsumer(TheRewriter);
 
+  TheRewriter.InsertTextAfter(SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID()), "");
   // Parse the file to AST, registering our consumer as the AST consumer.
   ParseAST(TheCompInst.getPreprocessor(), &TheConsumer,
            TheCompInst.getASTContext());
