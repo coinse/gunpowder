@@ -106,7 +106,7 @@ SRCDIR = lib
 BUILDDIR = bin
 SRCS = $(SRCDIR)/main.cpp
 DEPS = $(SRCDIR)/consumer.cpp $(SRCDIR)/buildcfg.cpp
-OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o $(BUILDDIR)/firstRound.o
+OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o $(BUILDDIR)/ControlDependency.o
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
@@ -129,9 +129,6 @@ $(BUILDDIR)/Consumers.o: $(SRCDIR)/Consumers.cpp
 	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
 $(BUILDDIR)/ControlDependency.o: $(SRCDIR)/ControlDependency.cpp
-	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
-
-$(BUILDDIR)/firstRound.o: $(SRCDIR)/firstRound.cpp
 	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
 python:

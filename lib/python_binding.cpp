@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "Cavm.h"
-#include "firstRound.h"
 
 struct Parser {
   PyObject_HEAD Cavm *cavm;
@@ -37,11 +36,7 @@ static int Parser_init(Parser *self, PyObject *args, PyObject *kwds) {
     Py_DECREF(item);
   }
   Py_DECREF(iterator);
-
-  firstRound(filename);
-  std::string newfilename(filename);
-  newfilename.append("_first_round.c");
-  self->cavm = new Cavm(newfilename, opts);
+  self->cavm = new Cavm(filename, opts);
   return 0;
 }
 
