@@ -83,17 +83,12 @@ class AddCodeASTVisitor : public RecursiveASTVisitor<AddCodeASTVisitor> {
                   clang::PrintingPolicy(TheRewriter.getLangOpts()));
               predicate += temp_stream3.str();
               sub_stmt = clang::cast<clang::CaseStmt>(sub_stmt)->getSubStmt();
-            } else if (clang::DefaultStmt::classof(sub_stmt)) {
+            } else {
               sub_stmt = nullptr;
             }
           }
 
-          if (sub_stmt)
-            lines = "if (" + predicate + ") { }\n" + lines;
-          else  // default
-            lines = "{  }\n" + lines;
-        } else if (clang::DefaultStmt::classof(cases)) {
-          lines = "{ }\n" + lines;
+          lines = "if (" + predicate + ") { }\n" + lines;
         }
         next_case = cases->getNextSwitchCase();
         if (cases == next_case || !next_case) break;
