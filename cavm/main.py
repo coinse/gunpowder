@@ -66,15 +66,17 @@ def get_decl_dict(parameters, parser):
     return decl_dict
 
 
-def set_search_params(c_input, minimum, maximum, prec):
-    for c_type in c_input:
-        if isinstance(c_type, ctype.CType):
-            c_type.set_min(minimum)
-            c_type.set_max(maximum)
-            if c_type.is_floating() and prec is not None:
-                c_type.precision = prec
-        elif isinstance(c_type, ctype.CStruct):
-            set_search_params(c_type.members, minimum, maximum, prec)
+def set_search_params(minimum, maximum, prec):
+    if minimum > maximum:
+        minimum, maximum = maximum, minimum
+
+    for typeclass in ctype.CType.__subclasses__():
+        if typeclass._min < minimum and minimum < typeclass._max:
+            typeclass._min = minimum
+        if typeclass._min < maximum and maximum < typeclass._max:
+            typeclass._max = maximum
+        if hasattr(typeclass, '_prec') and prec is not None:
+            typeclass._prec = prec
 
 
 def main():
@@ -136,11 +138,12 @@ def search(c_parser, cfg, wte, target_function, dlib, args):
     else:
         branchlist = [
             branch
-            for node in reversed(range(1, node_num+1))
+            for node in reversed(range(1, node_num + 1))
             for branch in ([node, False], [node, True])
         ]
 
     decls = get_decl_dict(params, c_parser)
+    set_search_params(args.min, args.max, args.prec)
     c_input = []
     for parameter in params:
         c_type = ctype.make_CType(parameter, decls)
@@ -149,8 +152,8 @@ def search(c_parser, cfg, wte, target_function, dlib, args):
     for decl in decls:
         ffi.cdef(decls[decl][0])
 
-    obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, wte, params, decls, args.sandbox)
-    set_search_params(c_input, args.min, args.max, args.prec)
+    obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, wte, params,
+                             decls, args.sandbox)
     result = avm.search(obj, c_input, branchlist, args.termination)
     print(report.make_JSON(result))
     if args.coverage:
