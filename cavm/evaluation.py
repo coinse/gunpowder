@@ -45,16 +45,20 @@ def get_trace(dynamic_lib):
                                trace.false_distance))
     return trace_list
 
-
-def get_dep_chain(dependency_map, targetbranch):
+def get_dep_chain(dependency_map, exit_flow, targetbranch):
     """get dependency chain of target branch from dependency map"""
     dep_chain = [targetbranch]
     nodeid = targetbranch[0]
     while nodeid in dependency_map:
         parent = dependency_map[nodeid]
+        for k, v in dependency_map.items():
+            if k < nodeid and v == parent:
+                for e in exit_flow[k]:
+                    dep_chain.append([e[0], not e[1]])
         dep_chain.append(parent)
         nodeid = parent[0]
-    return dep_chain
+
+    return sorted(dep_chain, key=lambda x: x[0], reverse=True)
 
 
 def get_divergence_point(trace, dependency_chain):
@@ -82,13 +86,14 @@ def get_divergence_point(trace, dependency_chain):
 class ObjFunc:
     """Objective Function"""
 
-    def __init__(self, target_ftn, dlib, ffi, cfg, p, d, sb):
+    def __init__(self, target_ftn, dlib, ffi, cfg, wte, p, d, sb):
         self.target_function = target_ftn
         self.dlib = dlib
         self.ffi = ffi
         self.params = p
         self.decls = d
         self.cfg = cfg
+        self.wte = wte
         self.counter = 0
         self.dictionary = {}
         self.target_branch_id = None
@@ -137,7 +142,7 @@ class ObjFunc:
         self.counter = 0
         self.dictionary = {}
         self.target_branch_id = branch_id
-        self.dependency_chain = get_dep_chain(self.cfg, branch_id)
+        self.dependency_chain = get_dep_chain(self.cfg, self.wte, branch_id)
 
     def execute(self, c_input, no_trace=False):
         """execute target function"""

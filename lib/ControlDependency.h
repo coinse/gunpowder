@@ -10,7 +10,7 @@ class MyASTVisitor : public clang::RecursiveASTVisitor<MyASTVisitor> {
 public:
   explicit MyASTVisitor(clang::Rewriter &R, ControlDependency &out)
       : TheRewriter(R), cfg(out) {
-    id = 0;
+    id = 1;
   }
 
   typedef std::vector<std::pair<clang::Stmt *, int>> branchidsty;
@@ -24,6 +24,8 @@ public:
     clang::Stmt *_s;
   };
 
+  bool hasReturnStmt(clang::Stmt *s);
+  
   int getStmtid(clang::Stmt *s);
 
   int assignStmtid(clang::Stmt *s);

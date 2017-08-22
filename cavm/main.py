@@ -25,10 +25,27 @@ STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
 def get_dep_map(dep_list):
     """get dependecy map from list"""
     dep_map = {}
+    wte = {}
     for i in dep_list:
         # i is (target_branch_id, parent_bid, condition)
-        dep_map[i[0]] = [i[1], i[2]]
-    return dep_map
+        if i[0] > 0:
+            dep_map[i[0]] = [i[1], i[2]]
+        elif i[0] == i[1]:
+            wte[-i[0]] = [[-i[1], i[2]]]
+    for b in reversed(sorted(dep_map)):
+        if b not in wte:
+            # initialize
+            wte[b] = []
+        dep_size = len(wte[b])
+        while True:
+            for k, v in dep_map.items():
+                if v[0] == b or v[0] in list(map(lambda x: x[0], wte[b])):
+                    wte[b] += filter(lambda x: x not in wte[b], wte[k])
+            if len(wte[b]) > dep_size:
+                dep_size = len(wte[b])
+            else:
+                break
+    return dep_map, wte
 
 
 def _get_decl(type_name, parser, decl_dict):
@@ -101,7 +118,7 @@ def instrument(c_parser, target_file, target_function):
     return cfg
 
 
-def search(c_parser, cfg, target_function, dlib, args):
+def search(c_parser, cfg, wte, target_function, dlib, args):
 
     decl, params = c_parser.get_decl(target_function)
     ffi = FFI()
@@ -119,7 +136,7 @@ def search(c_parser, cfg, target_function, dlib, args):
     else:
         branchlist = [
             branch
-            for node in reversed(range(node_num))
+            for node in reversed(range(1, node_num+1))
             for branch in ([node, False], [node, True])
         ]
 
@@ -132,7 +149,7 @@ def search(c_parser, cfg, target_function, dlib, args):
     for decl in decls:
         ffi.cdef(decls[decl][0])
 
-    obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, params, decls, args.sandbox)
+    obj = evaluation.ObjFunc(target_function, dlib, ffi, cfg, wte, params, decls, args.sandbox)
     set_search_params(c_input, args.min, args.max, args.prec)
     result = avm.search(obj, c_input, branchlist, args.termination)
     print(report.make_JSON(result))
@@ -159,9 +176,9 @@ def run_search(argv):
     args = parser.parse_args(argv)
 
     c_parser = clang.Parser(args.target, args.flags)
-    cfg = get_dep_map(instrument(c_parser, args.target, args.function))
+    cfg, wte = get_dep_map(instrument(c_parser, args.target, args.function))
 
-    search(c_parser, cfg, args.function, args.binary, args)
+    search(c_parser, cfg, wte, args.function, args.binary, args)
 
 
 def run(argv):
@@ -171,7 +188,7 @@ def run(argv):
     args = parser.parse_args(argv)
 
     c_parser = clang.Parser(args.target, args.flags)
-    cfg = get_dep_map(instrument(c_parser, args.target, args.function))
+    cfg, wte = get_dep_map(instrument(c_parser, args.target, args.function))
 
     name, _ = path.splitext(args.target)
     dlib = name + '.so'
@@ -198,7 +215,7 @@ def run(argv):
     if proc.returncode != 0:
         sys.exit(proc.returncode)
 
-    search(c_parser, cfg, args.function, dlib, args)
+    search(c_parser, cfg, wte, args.function, dlib, args)
 
 
 if __name__ == '__main__':

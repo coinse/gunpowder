@@ -1,14 +1,30 @@
 #include <iostream>
 #include <sstream>
-
 #include "ControlDependency.h"
+
+bool MyASTVisitor::hasReturnStmt(clang::Stmt *s) {
+  bool result = false;
+  if (s) {
+    if (clang::isa<clang::CompoundStmt>(s)) {
+      clang::CompoundStmt *C = clang::cast<clang::CompoundStmt>(s);
+      for (auto *I : C->body()) {
+        if (clang::isa<clang::ReturnStmt>(I))
+          result = true;
+      }
+    }
+    else if (clang::isa<clang::ReturnStmt>(s)) {
+      result = true;
+    }
+  }
+  return result;
+}
 
 int MyASTVisitor::getStmtid(clang::Stmt *s) {
   int stmtid;
   branchidsty::iterator it =
       std::find_if(branchids.begin(), branchids.end(), isidExist(s));
   if (it == branchids.end()) {
-    stmtid = -1;
+    stmtid = 0;
   } else { // if already assigned return assigned id
     stmtid = it->second;
   }
@@ -269,6 +285,10 @@ bool MyASTVisitor::VisitStmt(clang::Stmt *s) {
     clang::Expr *Cond = I->getCond();
     clang::Stmt *Then = I->getThen();
     clang::Stmt *Else = I->getElse();
+
+    if (hasReturnStmt(Then) != hasReturnStmt(Else)) { // Exclusive OR
+      cfg[-stmtid] = std::pair<int, bool>(-stmtid, hasReturnStmt(Then));
+    }
 
     assignDep(Then, s, true);
     if (Else)
