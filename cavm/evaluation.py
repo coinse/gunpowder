@@ -101,6 +101,16 @@ class ObjFunc:
         self.covered = []
         self.sandbox = sb
 
+    def _malloc(self, c_type, val):
+        obj = self.ffi.new(c_type, val)
+        size = self.ffi.sizeof(obj[0])
+        c_lib = self.ffi.dlopen(self.dlib)
+        p = c_lib.malloc(size)
+        p = self.ffi.cast(c_type, p)
+        self.ffi.memmove(p, obj, size)
+        global_weakkeydict[p] = val
+        return p
+
     def make_cffi_input(self, c_input):
         params = []
         for c_type in c_input:
@@ -118,10 +128,10 @@ class ObjFunc:
                             1, 'big', signed=True) if isinstance(
                                 c_type.pointee,
                                 ctype.CTypeChar) else c_type.pointee.value
-                        p = self.ffi.new(c_type.underlying_type + '*', val)
+                        p = self._malloc(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, ctype.CStruct):
                         val = self.make_cffi_input(c_type.pointee.members)
-                        p = self.ffi.new(c_type.underlying_type + '*', val)
+                        p = self._malloc(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, list):
                         if isinstance(c_type.pointee[0], ctype.CTypeChar):
                             val = b''
