@@ -8,6 +8,7 @@ import sys
 import argparse
 import shutil
 import subprocess
+import warnings
 from os import path
 from cffi import FFI
 
@@ -68,6 +69,9 @@ def get_decl_dict(parameters, parser):
 
 def set_search_params(minimum, maximum, prec):
     if minimum > maximum:
+        warnings.warn(
+            "Given minimum value is greater than maximum value. Two values will be swapped."
+        )
         minimum, maximum = maximum, minimum
 
     for typeclass in ctype.CType.__subclasses__():
