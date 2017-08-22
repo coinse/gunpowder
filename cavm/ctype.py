@@ -208,10 +208,10 @@ class CTypeFloat(CType):
     _repr = ['float']
     _min = float('-inf')
     _max = float('inf')
+    _prec = 1
 
     def __init__(self):
         super().__init__()
-        self.precision = 1
 
     def is_floating(self):
         return True
@@ -222,10 +222,10 @@ class CTypeDouble(CType):
     _repr = ['double']
     _min = float('-inf')
     _max = float('inf')
+    _prec = 1
 
     def __init__(self):
         super().__init__()
-        self.precision = 1
 
     def is_floating(self):
         return True
@@ -236,10 +236,10 @@ class CTypeLongDouble(CType):
     _repr = ['long double']
     _min = float('-inf')
     _max = float('inf')
+    _prec = 1
 
     def __init__(self):
         super().__init__()
-        self.precision = 1
 
     def is_floating(self):
         return True
