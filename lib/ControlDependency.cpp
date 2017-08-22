@@ -58,15 +58,32 @@ void MyASTVisitor::insertdep(clang::SourceLocation Loc, int stmtid,
 int MyASTVisitor::assignDep(clang::Stmt *s, clang::Stmt *parent, bool cond) {
   int stmtid = 0;
   int parentid = 0;
+  clang::Expr *Cond = nullptr;
 
-  if (clang::isa<clang::DoStmt>(s) || clang::isa<clang::ForStmt>(s) ||
-      clang::isa<clang::IfStmt>(s) || clang::isa<clang::WhileStmt>(s)) {
+  if (clang::isa<clang::DoStmt>(s)) {
+    clang::DoStmt *F = clang::cast<clang::DoStmt>(s);
+    Cond = F->getCond();
+  }
+  if (clang::isa<clang::ForStmt>(s)) {
+    clang::ForStmt *F = clang::cast<clang::ForStmt>(s);
+    Cond = F->getCond();
+  }
+  if (clang::isa<clang::IfStmt>(s)) {
+    clang::IfStmt *F = clang::cast<clang::IfStmt>(s);
+    Cond = F->getCond();
+  }
+  if (clang::isa<clang::WhileStmt>(s)) {
+    clang::WhileStmt *F = clang::cast<clang::WhileStmt>(s);
+    Cond = F->getCond();
+  }
+  if (Cond) {
     stmtid = assignStmtid(s);
     parentid = getStmtid(parent);
     if (cfg.find(stmtid) == cfg.end()) {
       cfg[stmtid] = std::pair<int, bool>(parentid, cond);
     }
-  } else if (clang::isa<clang::CompoundStmt>(s)) {
+  }
+  if (clang::isa<clang::CompoundStmt>(s)) {
     clang::CompoundStmt *C = clang::cast<clang::CompoundStmt>(s);
     for (auto *I : C->body()) {
       assignDep(I, parent, cond);
