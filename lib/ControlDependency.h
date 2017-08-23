@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
+ * Copyright (C) 2017 by Byeonghyeon You <byou@kaist.ac.kr>
+ * Copyright (C) 2017 by Gabin An <agb94@kaist.ac.kr>
+ *
+ * Licensed under the MIT License:
+ * See the LICENSE file at the top-level directory of this distribution.
+ */
+
 #ifndef __CONTROLDEPENDENCY_H__
 #define __CONTROLDEPENDENCY_H__
 
