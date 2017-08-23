@@ -111,7 +111,12 @@ OBJS = $(BUILDDIR)/Cavm.o $(BUILDDIR)/FrontendActions.o $(BUILDDIR)/Consumers.o 
 TARGET= $(BUILDDIR)/buildcfg
 
 .PHONY: all
-all: $(TARGET)
+all: python
+
+python:
+	python3 setup.py build_ext -b .
+
+clang: $(TARGET)
 	@`[ -d $(BUILDDIR) ] || $(MKDIR) $(BUILDDIR)`
 
 $(TARGET): $(BUILDDIR)/main.o $(OBJS) 
@@ -135,8 +140,6 @@ $(BUILDDIR)/ControlDependency.o: $(SRCDIR)/ControlDependency.cpp
 $(BUILDDIR)/firstRound.o: $(SRCDIR)/firstRound.cpp
 	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
-python:
-	python3 setup.py build_ext -b .
 
 .PHONY: clean
 clean:
