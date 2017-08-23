@@ -47,6 +47,12 @@ public:
 
   void insertbranchlog(clang::Expr *Cond, int stmtid);
 
+  void makeUntypedPointer(clang::Expr *Cond, llvm::raw_string_ostream &S,
+                          clang::Rewriter TheRewriter);
+
+  void handleImplicitCasting(clang::Expr *Cond, llvm::raw_string_ostream &S,
+                             clang::Rewriter TheRewriter);
+
   void convertCompositePredicate(clang::Expr *Cond, llvm::raw_string_ostream &S,
                                  clang::Rewriter TheRewriter);
 
