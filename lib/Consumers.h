@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
+ * Copyright (C) 2017 by Byeonghyeon You <byou@kaist.ac.kr>
+ * Copyright (C) 2017 by Simon Bihel <simon.bihel@ens-rennes.fr>
+ *
+ * Licensed under the MIT License:
+ * See the LICENSE file at the top-level directory of this distribution.
+ */
+
 #ifndef __CONSUMERS_H__
 #define __CONSUMERS_H__
 

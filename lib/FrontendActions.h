@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
+ *
+ * Licensed under the MIT License:
+ * See the LICENSE file at the top-level directory of this distribution.
+ */
+
 #ifndef __FRONTACTIONS_H__
 #define __FRONTACTIONS_H__
 

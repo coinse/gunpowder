@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2017 by Junhwi Kim <junhwi.kim23@gmail.com>
+ * Copyright (C) 2017 by Byeonghyeon You <byou@kaist.ac.kr>
+ * Copyright (C) 2017 by Jongmin Park <qwaqwa93@kaist.ac.kr>
+ *
+ * Licensed under the MIT License:
+ * See the LICENSE file at the top-level directory of this distribution.
+ */
+
 #include <string.h>
 int charDistance(char a, char b) { return abs(a - b); }
 double strcmp2(const char *p1, const char *p2) {
