@@ -140,7 +140,7 @@ def search(c_parser, cfg, wte, target_function, dlib, args):
 
     with open(CAVM_HEADER, 'r') as f:
         lines = f.readlines()
-        ffi.cdef(''.join(lines[13:22]))
+        ffi.cdef(''.join(lines[21:30]))
 
     node_num = len(cfg.keys())
     if args.branch != None:
