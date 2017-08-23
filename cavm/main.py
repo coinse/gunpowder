@@ -129,6 +129,7 @@ def search(c_parser, cfg, wte, target_function, dlib, args):
     decl, params = c_parser.get_decl(target_function)
     ffi = FFI()
     ffi.cdef(decl)
+    ffi.cdef("void *malloc(size_t size);") # necessary for ObjFunc
 
     with open(CAVM_HEADER, 'r') as f:
         lines = f.readlines()
