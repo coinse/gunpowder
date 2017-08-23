@@ -22,8 +22,8 @@ UNAME := $(shell uname -s)
 # directory of the binary download (the directory that has bin/, lib/, include/
 # and other directories inside).
 # See the build_vs_released_binary.sh script for an example.
-BINARY_DIR_PATH ?= $$HOME/llvm/llvm3.9-binaries
-LLVM_SRC_PATH := $(BINARY_DIR_PATH)
+CLANG_DIR ?= $$HOME/llvm/llvm3.9-binaries
+LLVM_SRC_PATH := $(CLANG_DIR)
 
 # LLVM_BUILD_PATH is the directory in which you built LLVM - where you ran
 # configure or cmake.
@@ -32,11 +32,11 @@ LLVM_SRC_PATH := $(BINARY_DIR_PATH)
 # process. It should contain the tools like opt, llc and clang. The default
 # reflects a release build with CMake and Ninja. binary build of LLVM, point it
 # to the bin/ directory.
-LLVM_BUILD_PATH := $(BINARY_DIR_PATH)/bin
-LLVM_BIN_PATH 	:= $(BINARY_DIR_PATH)/bin
+LLVM_BUILD_PATH := $(CLANG_DIR)/bin
+LLVM_BIN_PATH 	:= $(CLANG_DIR)/bin
 
 $(info -----------------------------------------------)
-$(info Using BINARY_DIR_PATH = $(BINARY_DIR_PATH))
+$(info Using CLANG_DIR = $(CLANG_DIR))
 $(info Using LLVM_SRC_PATH = $(LLVM_SRC_PATH))
 $(info Using LLVM_BUILD_PATH = $(LLVM_BUILD_PATH))
 $(info Using LLVM_BIN_PATH = $(LLVM_BIN_PATH))
@@ -48,7 +48,7 @@ $(info -----------------------------------------------)
 # Note: starting with release 3.7, llvm-config will inject flags that gcc may
 # not support (for example '-Wcovered-switch-default'). If you run into this
 # problem, build with CXX set to a modern clang++ binary instead of g++.
-CXX := $(BINARY_DIR_PATH)/bin/clang++
+CXX := $(CLANG_DIR)/bin/clang++
 CXXFLAGS := -fno-rtti -O0 -g
 PLUGIN_CXXFLAGS := -fpic
 
