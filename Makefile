@@ -140,6 +140,10 @@ $(BUILDDIR)/ControlDependency.o: $(SRCDIR)/ControlDependency.cpp
 $(BUILDDIR)/firstRound.o: $(SRCDIR)/firstRound.cpp
 	$(CXX) -c $(CXXFLAGS) $(LLVM_CXXFLAGS) $(CLANG_INCLUDES) $< -o $@
 
+# https://packaging.python.org/distributing/#wheels
+.PHONY: wheel
+wheel:
+	python3 setup.py bdist_wheel
 
 .PHONY: clean
 clean:
