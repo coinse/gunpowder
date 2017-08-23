@@ -6,6 +6,7 @@
 
 from cavm import ctype
 from multiprocessing import Process, Queue
+import sys
 import weakref
 
 # Global dict is needed to keep all objects alive.
@@ -106,6 +107,9 @@ class ObjFunc:
         size = self.ffi.sizeof(obj[0])
         c_lib = self.ffi.dlopen(self.dlib)
         p = c_lib.malloc(size)
+        if p == self.ffi.NULL:
+            print("Out of memory")
+            sys.exit()
         p = self.ffi.cast(c_type, p)
         self.ffi.memmove(p, obj, size)
         global_weakkeydict[p] = val
