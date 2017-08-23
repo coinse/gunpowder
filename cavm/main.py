@@ -168,9 +168,10 @@ def search(c_parser, cfg, wte, target_function, dlib, args):
                              decls, args.sandbox)
     result = avm.search(obj, c_input, branchlist, args.termination)
     print(report.make_JSON(result))
+    if args.gcov:
+        report.coverage(ffi, args.gcov, args.function, result)
     if args.coverage:
-        report.coverage(ffi, args.coverage, args.function, result)
-    report.make_csv(result, target_function)
+        report.make_csv(result, target_function)
 
 
 def run_instrument(argv):
@@ -217,18 +218,19 @@ def run(argv):
     ])
     if proc.returncode != 0:
         sys.exit(proc.returncode)
-    args.coverage = name + '.gcov.so'
-    proc = subprocess.run([
-        'gcc',
-        '-fPIC',
-        '-shared',
-        '--coverage',
-        '-o',
-        args.coverage,
-        args.target,
-    ])
-    if proc.returncode != 0:
-        sys.exit(proc.returncode)
+    if args.gcov:
+        args.gcov = name + '.gcov.so'
+        proc = subprocess.run([
+            'gcc',
+            '-fPIC',
+            '-shared',
+            '--coverage',
+            '-o',
+            args.gcov,
+            args.target,
+        ])
+        if proc.returncode != 0:
+            sys.exit(proc.returncode)
 
     search(c_parser, cfg, wte, args.function, dlib, args)
 
