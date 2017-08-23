@@ -211,6 +211,7 @@ def run(argv):
     proc = subprocess.run([
         'gcc',
         '-fPIC',
+        '-Wno-absolute-value',
         '-shared',
         '-o',
         dlib,
@@ -223,6 +224,7 @@ def run(argv):
         proc = subprocess.run([
             'gcc',
             '-fPIC',
+            '-Wno-absolute-value',
             '-shared',
             '--coverage',
             '-o',
