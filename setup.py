@@ -36,9 +36,9 @@ extra = []
 extra_link = []
 include_dirs = []
 
-if not os.environ.get('BINARY_DIR_PATH'):
-    raise SystemExit('BINARY_DIR_PATH is unset.')
-BINARY_DIR_PATH = os.environ['BINARY_DIR_PATH']
+if not os.environ.get('CLANG_DIR'):
+    raise SystemExit('CLANG_DIR_ is unset.')
+BINARY_DIR_PATH = os.environ['CLANG_DIR']
 os.environ['CC'] = BINARY_DIR_PATH + '/bin/clang++'
 os.environ['CXX'] = BINARY_DIR_PATH + '/bin/clang++'
 
