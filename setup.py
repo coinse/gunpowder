@@ -101,13 +101,16 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='cavm',
-    version='0.1.0',
+    version='1.0.0',
     url='http://coinse.kaist.ac.kr',
     author='COINSE Lab.',
     description='A test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM)',
     long_description=long_description,
     license='MIT',
     packages=find_packages(),
+    package_data={
+        'cavm': ['branch_distance.h', 'strcmp2.c']
+    },
     entry_points={
         'console_scripts': [
             'cavm = cavm.main:main',
@@ -118,7 +121,7 @@ setup(
     ],
     ext_modules=[module],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
