@@ -7,10 +7,6 @@ Licensed under the MIT License:
 See the LICENSE file at the top-level directory of this distribution.
 """
 
-"""CAVM
-  $ cavm file [options]
-"""
-
 import sys
 import argparse
 import shutil
@@ -19,12 +15,9 @@ import warnings
 from os import path
 from cffi import FFI
 
-from cavm import avm
 from cavm import clang
-from cavm import commands
 from cavm import ctype
 from cavm import evaluation
-from cavm import report
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
 STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
@@ -88,34 +81,6 @@ def set_search_params(minimum, maximum, prec):
             typeclass._max = maximum
         if hasattr(typeclass, '_prec') and prec is not None:
             typeclass._prec = prec
-
-
-def main():
-    """
-    A simple method that runs a CAVM.
-    """
-    usage = [
-        "",
-        "Type 'cavm <command> -h' for help on a specific command.",
-        "",
-        "Available commands:",
-        "\tinstrument",
-        "\tsearch",
-        "\trun",
-    ]
-    command_parser = argparse.ArgumentParser(
-        usage='\n'.join(usage), add_help=False)
-    command_parser.add_argument(
-        'command', type=str, choices=['instrument', 'search', 'run'])
-
-    opts, args = command_parser.parse_known_args()
-
-    if opts.command == 'instrument':
-        run_instrument(args)
-    elif opts.command == 'search':
-        run_search(args)
-    elif opts.command == 'run':
-        run(args)
 
 
 def instrument(c_parser, target_file, target_function):
@@ -235,7 +200,3 @@ def run(argv):
             sys.exit(proc.returncode)
 
     search(c_parser, cfg, wte, args.function, dlib, args)
-
-
-if __name__ == '__main__':
-    main()
