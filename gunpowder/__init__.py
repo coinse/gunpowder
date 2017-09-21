@@ -8,3 +8,5 @@ from os import path
 
 CAVM_HEADER = path.dirname(__file__) + '/branch_distance.h'
 STRCMP2 = path.dirname(__file__) + '/strcmp2.c'
+
+from .session import Session

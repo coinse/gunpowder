@@ -10,7 +10,7 @@ import sys
 
 from gunpowder.ctype import *
 from gunpowder import analyze
-from gunpowder import session
+from gunpowder import Session
 from gunpowder import evaluate
 
 NAME = './triangle'
@@ -34,13 +34,20 @@ if proc.returncode != 0:
     sys.exit(proc.returncode)
 
 # Run
-sess = session.Session(NAME+'.so', declarations)
+sess = Session(NAME+'.so', declarations)
 args = [
     CTypeInt(),
     CTypeInt(),
     CTypeInt(),
 ]
 trace = sess.run(args, FUNC)
+sess.close()
+
+"""Using context manager
+with Session(NAME+'.so', declarations) as sess:
+    trace = sess.run(...)
+"""
+
 print(trace)
 
 # Check the fitness
