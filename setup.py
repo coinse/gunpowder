@@ -37,7 +37,7 @@ extra_link = []
 include_dirs = []
 
 if not os.environ.get('CLANG_DIR'):
-    raise SystemExit('CLANG_DIR_ is unset.')
+    raise SystemExit('CLANG_DIR is unset.')
 BINARY_DIR_PATH = os.environ['CLANG_DIR']
 os.environ['CC'] = BINARY_DIR_PATH + '/bin/clang++'
 os.environ['CXX'] = BINARY_DIR_PATH + '/bin/clang++'
@@ -87,7 +87,7 @@ if platform.system() != 'Darwin':
     CLANG_LIBS = ['-Wl,--start-group'] + CLANG_LIBS + ['-Wl,--end-group']
 
 module = Extension(
-    'cavm.clang',
+    'gunpowder.clang',
     sources=['lib/python_binding.cpp', 'lib/Cavm.cpp', 'lib/Consumers.cpp', 'lib/ControlDependency.cpp', 'lib/FrontendActions.cpp', 'lib/firstRound.cpp'],
     depends=[],
     include_dirs=CLANG_INCLUDES + include_dirs,
@@ -96,25 +96,17 @@ module = Extension(
     extra_link_args=CLANG_LIBS+libs+extra_link)
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
 
 setup(
-    name='cavm',
-    version='1.0.0',
+    name='gunpowder',
+    version='0.1.0',
     url='http://coinse.kaist.ac.kr',
     author='COINSE Lab.',
-    description='A test data generation tool for C/C++ code, based on the Alternating Variable Method (AVM)',
-    long_description=long_description,
+    description='Gunpowder instruments and execute C code',
     license='MIT',
     packages=find_packages(),
     package_data={
-        'cavm': ['branch_distance.h', 'strcmp2.c']
-    },
-    entry_points={
-        'console_scripts': [
-            'cavm = cavm.main:main',
-        ],
+        'gunpowder': ['branch_distance.h', 'strcmp2.c']
     },
     install_requires=[
         'cffi',
