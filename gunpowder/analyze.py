@@ -15,10 +15,13 @@ from gunpowder import clang
 
 
 class Analyzer:
+    """A class to instrument C function"""
 
-    def __init__(self, path, cflags):
-        self.path = path
-        self.parser = clang.Parser(path, cflags)
+    def __init__(self, file_path, cflags):
+        if not path.isfile(file_path):
+            raise FileNotFoundError("No such file: '{}'".format(file_path))
+        self.path = file_path
+        self.parser = clang.Parser(file_path, cflags)
 
     def instrument(self, target_function):
         if target_function:
