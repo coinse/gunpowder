@@ -7,28 +7,25 @@ Licensed under the MIT License:
 See the LICENSE file at the top-level directory of this distribution.
 """
 
-"""evaluation
-  compute objective value
-"""
-
-from gunpowder import CAVM_HEADER
-from gunpowder import ctype
 from multiprocessing import Process, Queue
-from cffi import FFI
 import sys
 import weakref
-
-# Global dict is needed to keep all objects alive.
-# https://cffi.readthedocs.io/en/latest/using.html#working-with-pointers-structures-and-arrays
+from gunpowder import CAVM_HEADER
+from gunpowder import ctype
+from cffi import FFI
 
 
 class Session:
+    """A class for running C function"""
+
     def __init__(self, bin_path, decl_dict, fork=True):
         self.path = bin_path
         self.sandbox = fork
+        # Global dict is needed to keep all objects alive.
+        # https://cffi.readthedocs.io/en/latest/using.html#working-with-pointers-structures-and-arrays
         self.heap = weakref.WeakKeyDictionary()
         ffi = FFI()
-        ffi.cdef("void *malloc(size_t size);") # necessary for ObjFunc
+        ffi.cdef("void *malloc(size_t size);")  # necessary for ObjFunc
         for decl in decl_dict:
             ffi.cdef(decl_dict[decl][0])
         with open(CAVM_HEADER, 'r') as f:
@@ -36,6 +33,17 @@ class Session:
             ffi.cdef(''.join(lines[21:30]))
         self.ffi = ffi
         self.lib = ffi.dlopen(bin_path)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def close(self):
+        # TODO: Do clean up
+        # Free WeakKeyDictionary, dlopen
+        pass
 
     def _malloc(self, c_type, val):
         obj = self.ffi.new(c_type, val)
@@ -49,15 +57,15 @@ class Session:
         self.heap[p] = val
         return p
 
-    def make_cffi_input(self, c_input):
+    def _make_cffi_input(self, c_input):
         params = []
         for c_type in c_input:
             if isinstance(c_type, ctype.CType):
                 params.append(
-                    c_type.value.to_bytes(1, 'big', signed=True)
-                    if isinstance(c_type, ctype.CTypeChar) else c_type.value)
+                    c_type.value.to_bytes(1, 'big', signed=True) if isinstance(
+                        c_type, ctype.CTypeChar) else c_type.value)
             elif isinstance(c_type, ctype.CStruct):
-                members = self.make_cffi_input(c_type.members)
+                members = self._make_cffi_input(c_type.members)
                 params.append(self.ffi.new(c_type.name + '*', members)[0])
             elif isinstance(c_type, ctype.CPointer):
                 if c_type.pointee:
@@ -68,7 +76,7 @@ class Session:
                                 ctype.CTypeChar) else c_type.pointee.value
                         p = self._malloc(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, ctype.CStruct):
-                        val = self.make_cffi_input(c_type.pointee.members)
+                        val = self._make_cffi_input(c_type.pointee.members)
                         p = self._malloc(c_type.underlying_type + '*', val)
                     elif isinstance(c_type.pointee, list):
                         if isinstance(c_type.pointee[0], ctype.CTypeChar):
@@ -92,18 +100,21 @@ class Session:
         # if inputtuple in self.dictionary:
         #     return self.dictionary[inputtuple]
         # else:
-        cffi_input = self.make_cffi_input(c_input)
+        cffi_input = self._make_cffi_input(c_input)
         if self.sandbox:
+
             def sandbox(q, lib, target, inputs):
                 c_function = getattr(lib, target)
                 c_function(*inputs)
                 if no_trace:
                     q.put([])
                 else:
-                    q.put(self.get_trace(lib))
+                    q.put(self._get_trace(lib))
+
             q = Queue()
             p = Process(
-                target=sandbox, args=(q, self.lib, target_function, cffi_input))
+                target=sandbox,
+                args=(q, self.lib, target_function, cffi_input))
             p.start()
             p.join()
 
@@ -114,11 +125,11 @@ class Session:
             if no_trace:
                 trace = []
             else:
-                trace = self.get_trace(self.lib)
+                trace = self._get_trace(self.lib)
 
         return trace
 
-    def get_trace(self, dynamic_lib):
+    def _get_trace(self, dynamic_lib):
         """get trace from dynamic library"""
         trace_list = []
         while True:
@@ -126,7 +137,6 @@ class Session:
             if trace.stmtid == -1:
                 break
             else:
-                trace_list.append((trace.stmtid, trace.result, trace.true_distance,
-                                   trace.false_distance))
+                trace_list.append((trace.stmtid, trace.result,
+                                   trace.true_distance, trace.false_distance))
         return trace_list
-
