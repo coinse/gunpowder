@@ -297,3 +297,18 @@ def make_CType(c_type, decl_dict, stop_recursion=False):
         return struct
     else:
         return c_type_factory(c_type)
+
+def set_search_params(minimum, maximum, prec):
+    if minimum > maximum:
+        warnings.warn(
+            "Given minimum value is greater than maximum value. Two values will be swapped."
+        )
+        minimum, maximum = maximum, minimum
+
+    for typeclass in CType.__subclasses__():
+        if typeclass._min < minimum and minimum < typeclass._max:
+            typeclass._min = minimum
+        if typeclass._min < maximum and maximum < typeclass._max:
+            typeclass._max = maximum
+        if hasattr(typeclass, '_prec') and prec is not None:
+            typeclass._prec = prec

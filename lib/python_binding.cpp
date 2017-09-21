@@ -110,11 +110,11 @@ static PyType_Slot CAVMTypeSlots[] = {
     {Py_tp_methods, reinterpret_cast<void *>(methods)},
     {0, NULL}};
 
-static PyType_Spec CAVMTypeSpec = {"cavm.clang.Parser", sizeof(Parser), 0,
+static PyType_Spec CAVMTypeSpec = {"gunpowder.clang.Parser", sizeof(Parser), 0,
                                    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
                                    CAVMTypeSlots};
 
-static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "cavm.clang", NULL,
+static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "gunpowder.clang", NULL,
                                     -1, NULL, NULL, NULL, NULL, NULL};
 
 static PyTypeObject *ParserType = NULL;
