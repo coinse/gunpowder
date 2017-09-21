@@ -52,7 +52,8 @@ class Analyzer:
             while True:
                 for k, v in dep_map.items():
                     if v[0] == b or v[0] in list(map(lambda x: x[0], wte[b])):
-                        wte[b] += filter(lambda x: x not in wte[b], wte[k])
+                        wte[b] += filter(
+                            lambda x, idx=b: x not in wte[idx], wte[k])
                 if len(wte[b]) > dep_size:
                     dep_size = len(wte[b])
                 else:
@@ -74,11 +75,9 @@ class Analyzer:
                 decl_dict[type_name] = (decl, members)
                 for member in members:
                     self._get_decl(member, decl_dict)
-    
+
     def _get_decl_dict(self, parameters):
         decl_dict = {}
         for param in parameters:
             self._get_decl(param, decl_dict)
         return decl_dict
-
-
