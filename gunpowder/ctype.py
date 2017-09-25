@@ -5,12 +5,6 @@ Copyright (C) 2017 by Byeonghyeon You <byou@kaist.ac.kr>
 Licensed under the MIT License:
 See the LICENSE file at the top-level directory of this distribution.
 """
-
-"""Ctype
-  Type class and factory method
-"""
-
-import random
 import warnings
 
 
@@ -36,8 +30,8 @@ class CType:
     """C type base class"""
     is_recursive = False
 
-    def __init__(self):
-        self.value = 0
+    def __init__(self, value=0):
+        self.value = value
         self.__max = type(self)._max
         self.__min = type(self)._min
 
@@ -82,9 +76,6 @@ class CTypeChar(CType):
     _min = -128
     _max = 127
 
-    def __init__(self):
-        super().__init__()
-
     def is_integer(self):
         return True
 
@@ -94,9 +85,6 @@ class CTypeUChar(CType):
     _repr = ['unsigned char']
     _min = 0
     _max = 255
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -108,9 +96,6 @@ class CTypeShort(CType):
     _min = -32768
     _max = 32767
 
-    def __init__(self):
-        super().__init__()
-
     def is_integer(self):
         return True
 
@@ -120,9 +105,6 @@ class CTypeUShort(CType):
     _repr = ['unsigned short', 'unsigned short int']
     _min = 0
     _max = 65535
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -134,9 +116,6 @@ class CTypeInt(CType):
     _min = -2147483648
     _max = 2147483647
 
-    def __init__(self):
-        super().__init__()
-
     def is_integer(self):
         return True
 
@@ -146,9 +125,6 @@ class CTypeUInt(CType):
     _repr = ['unsigned', 'unsigned int']
     _min = 0
     _max = 4294967295
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -160,9 +136,6 @@ class CTypeLong(CType):
     _min = -2147483648
     _max = 2147483637
 
-    def __init__(self):
-        super().__init__()
-
     def is_integer(self):
         return True
 
@@ -172,9 +145,6 @@ class CTypeULong(CType):
     _repr = ['unsigned long', 'unsigned long int']
     _min = 0
     _max = 4294967295
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -189,9 +159,6 @@ class CTypeLongLong(CType):
     _min = -9223372036854775808
     _max = 9223372036854775807
 
-    def __init__(self):
-        super().__init__()
-
     def is_integer(self):
         return True
 
@@ -201,9 +168,6 @@ class CTypeULongLong(CType):
     _repr = ['unsigned long long', 'unsigned long long int']
     _min = 0
     _max = 18446744073709551615
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -216,9 +180,6 @@ class CTypeFloat(CType):
     _max = float('inf')
     _prec = 1
 
-    def __init__(self):
-        super().__init__()
-
     def is_floating(self):
         return True
 
@@ -229,9 +190,6 @@ class CTypeDouble(CType):
     _min = float('-inf')
     _max = float('inf')
     _prec = 1
-
-    def __init__(self):
-        super().__init__()
 
     def is_floating(self):
         return True
@@ -244,9 +202,6 @@ class CTypeLongDouble(CType):
     _max = float('inf')
     _prec = 1
 
-    def __init__(self):
-        super().__init__()
-
     def is_floating(self):
         return True
 
@@ -256,9 +211,6 @@ class CTypeBool(CType):
     _repr = ['_Bool']
     _min = 0
     _max = 1
-
-    def __init__(self):
-        super().__init__()
 
     def is_integer(self):
         return True
@@ -297,6 +249,7 @@ def make_CType(c_type, decl_dict, stop_recursion=False):
         return struct
     else:
         return c_type_factory(c_type)
+
 
 def set_search_params(minimum, maximum, prec):
     if minimum > maximum:
