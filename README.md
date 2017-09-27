@@ -1,6 +1,6 @@
 # Gunpowder
 
-**Gunpowder** is an open source software library for dynamic execution of C program.
+**Gunpowder** is an open source software library that provides control dependency analysis and branch distance instrumentation. You can use **Gunpowder** as the execution infrastructure to your automated test data generation technique.
 
 # Simple example
 
