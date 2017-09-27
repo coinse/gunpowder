@@ -17,7 +17,7 @@ def get_dep_chain(dependency_map, exit_flow, targetbranch):
         for k, v in dependency_map.items():
             if k < nodeid and v == parent:
                 for e in exit_flow[k]:
-                    dep_chain.append([e[0], not e[1]])
+                    dep_chain.append(tuple(e[0], not e[1]))
         dep_chain.append(parent)
         nodeid = parent[0]
 
