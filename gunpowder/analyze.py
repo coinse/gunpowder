@@ -43,7 +43,7 @@ class Analyzer:
             if i[0] > 0:
                 dep_map[i[0]] = tuple((i[1], i[2]))
             elif i[0] == i[1]:
-                wte[-i[0]] = tuple((-i[1], i[2]))
+                wte[-i[0]] = [tuple((-i[1], i[2]))]
         for b in reversed(sorted(dep_map)):
             if b not in wte:
                 # initialize
